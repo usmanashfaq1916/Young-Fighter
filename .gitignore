@@ -39,3 +39,16 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/src/generated/prisma
+
+.vercel
+.env*
+
+# agent/tool skill docs (Prisma skill copies, not app code)
+.agents/
+.claude/
+.windsurf/
+
+# office temp lock files
+~$*

@@ -1,0 +1,10 @@
+.agents
+.claude
+.windsurf
+.vercel
+.env
+.env.local
+src/generated/prisma
+public/uploads
+seed.log
+dbcheck.ts

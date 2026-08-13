@@ -1,0 +1,400 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  COACH
+  STUDENT
+  PARENT
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum StudentStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum SkillLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  PROFESSIONAL
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LEAVE
+}
+
+enum FeeStatus {
+  PAID
+  PARTIAL
+  PENDING
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  JAZZCASH
+  EASYPAISA
+  CARD
+  OTHER
+}
+
+enum MatchResult {
+  WON
+  LOST
+  DRAW
+  TIE
+}
+
+enum ExpenseCategory {
+  EQUIPMENT
+  GROUND
+  TRANSPORT
+  UTILITIES
+  SALARIES
+  MAINTENANCE
+  EVENTS
+  OTHER
+}
+
+enum ActivityType {
+  LOGIN
+  LOGOUT
+  PASSWORD_RESET
+  STUDENT_CREATED
+  STUDENT_UPDATED
+  STUDENT_DEACTIVATED
+  STUDENT_ACTIVATED
+  STUDENT_DELETED
+  ATTENDANCE_MARKED
+  FEE_RECORDED
+  FEE_UPDATED
+  RECEIPT_GENERATED
+  PERFORMANCE_ADDED
+  PERFORMANCE_UPDATED
+  MATCH_ADDED
+  MATCH_UPDATED
+  EXPENSE_ADDED
+  EXPENSE_UPDATED
+  EXPENSE_DELETED
+  COACH_ADDED
+  COACH_UPDATED
+  COACH_DEACTIVATED
+  ANNOUNCEMENT_CREATED
+  SETTINGS_UPDATED
+  BACKUP_EXPORTED
+  BACKUP_RESTORED
+  NOTIFICATION_SENT
+  OTHER
+}
+
+model User {
+  id             String          @id @default(cuid())
+  email          String          @unique
+  passwordHash   String
+  fullName       String
+  mobile         String?
+  role           Role            @default(STUDENT)
+  status         UserStatus      @default(ACTIVE)
+  photoUrl       String?
+  studentId      String?
+  sessionVersion Int             @default(0)
+  lastLoginAt    DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  createdBy      String?
+  updatedBy      String?
+
+  coachProfile     CoachProfile?
+  parentLinks      StudentParent[]
+  coachStudents    Student[]         @relation("StudentCoach")
+  batches          Batch[]
+  performances     Performance[]
+  matches          Match[]
+  activities       Activity[]
+  notifications    Notification[]
+  resetTokens      PasswordResetToken[]
+  pushSubscriptions PushSubscription[]
+
+  @@index([role, status])
+  @@index([studentId])
+}
+
+model Batch {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  description String?
+  coachId     String?
+  coach       User?     @relation(fields: [coachId], references: [id])
+  students    Student[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([coachId])
+}
+
+model Student {
+  id               String        @id @default(cuid())
+  studentId        String        @unique
+  fullName         String
+  guardianName     String
+  mobile           String
+  whatsapp         String?
+  dob              DateTime      @db.Date
+  gender           Gender
+  address          String?
+  joinDate         DateTime      @db.Date
+  batchId          String?
+  batch            Batch?        @relation(fields: [batchId], references: [id])
+  skillLevel       SkillLevel    @default(BEGINNER)
+  monthlyFee       Int           @default(0)
+  emergencyContact String?
+  bloodGroup       String?
+  photoUrl         String?
+  status           StudentStatus @default(ACTIVE)
+  coachId          String?
+  coach            User?         @relation("StudentCoach", fields: [coachId], references: [id])
+  qrToken          String        @unique
+  deletedAt        DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  createdBy        String?
+  updatedBy        String?
+
+  parentLinks  StudentParent[]
+  attendance   Attendance[]
+  fees         Fee[]
+  performances Performance[]
+  matchRecords MatchRecord[]
+
+  @@index([batchId, status])
+  @@index([coachId])
+  @@index([fullName])
+  @@index([mobile])
+  @@index([createdAt])
+}
+
+model CoachProfile {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id])
+  specialization String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model StudentParent {
+  id        String   @id @default(cuid())
+  studentId String
+  student   Student  @relation(fields: [studentId], references: [id])
+  parentId  String
+  parent    User     @relation(fields: [parentId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([studentId, parentId])
+  @@index([parentId])
+}
+
+model Attendance {
+  id        String           @id @default(cuid())
+  studentId String
+  student   Student          @relation(fields: [studentId], references: [id])
+  date      DateTime         @db.Date
+  status    AttendanceStatus
+  markedBy  String
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@unique([studentId, date])
+  @@index([date, status])
+  @@index([studentId, date])
+}
+
+model Fee {
+  id            String        @id @default(cuid())
+  studentId     String
+  student       Student       @relation(fields: [studentId], references: [id])
+  month         String
+  monthlyFee    Int
+  discount      Int           @default(0)
+  paidAmount    Int           @default(0)
+  balance       Int
+  dueDate       DateTime      @db.Date
+  paymentDate   DateTime?     @db.Date
+  paymentMethod PaymentMethod?
+  receiptNumber String?       @unique
+  status        FeeStatus     @default(PENDING)
+  remarks       String?
+  createdBy     String
+  updatedBy     String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@unique([studentId, month])
+  @@index([month, status])
+  @@index([dueDate])
+  @@index([status])
+}
+
+model Performance {
+  id               String   @id @default(cuid())
+  studentId        String
+  student          Student  @relation(fields: [studentId], references: [id])
+  date             DateTime @default(now()) @db.Date
+  battingRating    Int
+  bowlingRating    Int
+  fieldingRating   Int
+  fitnessRating    Int
+  disciplineRating Int
+  overallRating    Float
+  remarks          String?
+  coachId          String?
+  coach            User?    @relation(fields: [coachId], references: [id])
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([studentId, date])
+}
+
+model Match {
+  id        String       @id @default(cuid())
+  matchDate DateTime     @db.Date
+  opponent  String
+  venue     String?
+  result    MatchResult?
+  coachId   String?
+  coach     User?        @relation(fields: [coachId], references: [id])
+  records   MatchRecord[]
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  createdBy String?
+
+  @@index([matchDate])
+}
+
+model MatchRecord {
+  id           String  @id @default(cuid())
+  matchId      String
+  match        Match   @relation(fields: [matchId], references: [id])
+  studentId    String
+  student      Student @relation(fields: [studentId], references: [id])
+  runs         Int     @default(0)
+  ballsFaced   Int?
+  wickets      Int     @default(0)
+  catches      Int     @default(0)
+  strikeRate   Float?
+  economy      Float?
+  manOfTheMatch Boolean @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([matchId, studentId])
+  @@index([studentId])
+}
+
+model Expense {
+  id        String         @id @default(cuid())
+  title     String
+  category  ExpenseCategory
+  amount    Int
+  date      DateTime       @db.Date
+  notes     String?
+  createdBy String
+  updatedBy String?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@index([date, category])
+  @@index([category])
+}
+
+model Activity {
+  id        String       @id @default(cuid())
+  userId    String
+  user      User         @relation(fields: [userId], references: [id])
+  type      ActivityType
+  action    String
+  entity    String?
+  entityId  String?
+  details   String?
+  createdAt DateTime     @default(now())
+
+  @@index([createdAt])
+  @@index([userId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  role      Role?
+  title     String
+  body      String
+  type      String   @default("info")
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, read])
+  @@index([role])
+}
+
+model Announcement {
+  id        String   @id @default(cuid())
+  title     String
+  body      String
+  audience  String   @default("ALL")
+  createdBy String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model Setting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedBy String?
+  updatedAt DateTime @updatedAt
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  endpoint  String   @unique
+  keys      Json?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}

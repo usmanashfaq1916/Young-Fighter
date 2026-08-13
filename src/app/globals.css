@@ -1,26 +1,134 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f7f8f7;
+  --foreground: #101418;
+  --surface: #ffffff;
+  --surface-alt: #f0f3f0;
+  --border: #e2e8e2;
+  --primary: #0f5a30;
+  --primary-dark: #0b4726;
+  --primary-light: #1e7a45;
+  --navy: #0b1f3a;
+  --navy-light: #122c52;
+  --gold: #d4a017;
+  --gold-light: #f5d982;
+  --gold-dark: #b8860b;
+  --danger: #c62828;
+  --danger-light: #ef5350;
+  --warning: #b26a00;
+  --info: #1565c0;
+  --success: #2e7d32;
+  --muted: #5f6b61;
+  --card-radius: 14px;
+}
+
+.dark {
+  --background: #0d1117;
+  --foreground: #e6ede8;
+  --surface: #151b22;
+  --surface-alt: #1c242d;
+  --border: #28313b;
+  --primary: #34a35e;
+  --primary-dark: #287f4a;
+  --primary-light: #4cbf76;
+  --navy: #0b1f3a;
+  --navy-light: #16325c;
+  --gold: #e0b52e;
+  --gold-light: #f5d982;
+  --gold-dark: #b8860b;
+  --danger: #ef5350;
+  --danger-light: #ff8a80;
+  --warning: #ffb74d;
+  --info: #64b5f6;
+  --success: #66bb6a;
+  --muted: #93a19a;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-alt: var(--surface-alt);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-dark: var(--primary-dark);
+  --color-primary-light: var(--primary-light);
+  --color-navy: var(--navy);
+  --color-navy-light: var(--navy-light);
+  --color-gold: var(--gold);
+  --color-gold-light: var(--gold-light);
+  --color-gold-dark: var(--gold-dark);
+  --color-danger: var(--danger);
+  --color-danger-light: var(--danger-light);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
+  --color-success: var(--success);
+  --color-muted: var(--muted);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --radius-card: var(--card-radius);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  border-color: var(--border);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-border bg-surface shadow-sm;
+  }
+  .card-hover {
+    @apply transition-shadow hover:shadow-md;
+  }
+  .btn-gold {
+    @apply inline-flex items-center gap-2 rounded-xl bg-gradient-to-b from-gold-light to-gold px-4 py-2.5 text-sm font-semibold text-navy shadow-sm transition hover:brightness-105 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50;
+  }
+  .input {
+    @apply w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-sm text-foreground outline-none transition placeholder:text-muted/60 focus:border-primary focus:ring-2 focus:ring-primary/25;
+  }
+  .label {
+    @apply mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted;
+  }
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold;
+  }
+  .table-th {
+    @apply px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted;
+  }
+  .table-td {
+    @apply px-4 py-3 text-sm;
+  }
+  .table-row {
+    @apply border-b border-border transition-colors last:border-0 hover:bg-surface-alt/60;
+  }
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
+/* Recharts dark mode defaults */
+.recharts-cartesian-grid line {
+  stroke: var(--border);
+}
+.recharts-text {
+  fill: var(--muted);
+  font-size: 11px;
 }
