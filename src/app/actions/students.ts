@@ -73,11 +73,16 @@ export async function createStudentAction(input: {
     }
     const data = parsed.data;
 
-    const last = await db.student.findFirst({
-      orderBy: { studentId: "desc" },
-      select: { studentId: true },
-    });
-    const studentId = nextStudentId(last?.studentId ?? null);
+    const existingIds = await db.student.findMany({ select: { studentId: true } });
+    const maxId = existingIds.reduce(
+      (max, s) =>
+        (parseInt(s.studentId.replace(/^YFA-/, ""), 10) || 0) >
+        (parseInt(max.replace(/^YFA-/, ""), 10) || 0)
+          ? s.studentId
+          : max,
+      "YFA-00000"
+    );
+    const studentId = nextStudentId(maxId);
     const qrToken = generateQrToken();
 
     if (input.photoDataUrl) {
@@ -92,29 +97,47 @@ export async function createStudentAction(input: {
       }
     }
 
-    const student = await db.student.create({
-      data: {
-        studentId,
-        qrToken,
-        fullName: data.fullName,
-        guardianName: data.guardianName,
-        mobile: data.mobile,
-        whatsapp: data.whatsapp || null,
-        dob: dateOnlyUTC(data.dob),
-        gender: data.gender,
-        address: data.address || null,
-        joinDate: dateOnlyUTC(data.joinDate),
-        batchId: data.batchId || null,
-        skillLevel: data.skillLevel,
-        monthlyFee: data.monthlyFee,
-        emergencyContact: data.emergencyContact || null,
-        bloodGroup: data.bloodGroup || null,
-        status: data.status,
-        photoUrl,
-        coachId: user.role === "COACH" ? user.id : null,
-        createdBy: user.id,
-      },
-    });
+    let student: Awaited<ReturnType<typeof db.student.create>> | null = null;
+    let candidateId = studentId;
+    for (let attempt = 0; attempt < 3 && !student; attempt++) {
+      try {
+        student = await db.student.create({
+          data: {
+            studentId: candidateId,
+            qrToken,
+            fullName: data.fullName,
+            guardianName: data.guardianName,
+            mobile: data.mobile,
+            whatsapp: data.whatsapp || null,
+            dob: dateOnlyUTC(data.dob),
+            gender: data.gender,
+            address: data.address || null,
+            joinDate: dateOnlyUTC(data.joinDate),
+            batchId: data.batchId || null,
+            skillLevel: data.skillLevel,
+            monthlyFee: data.monthlyFee,
+            emergencyContact: data.emergencyContact || null,
+            bloodGroup: data.bloodGroup || null,
+            status: data.status,
+            photoUrl,
+            coachId: user.role === "COACH" ? user.id : null,
+            createdBy: user.id,
+          },
+        });
+      } catch (error) {
+        const isUniqueViolation =
+          error &&
+          typeof error === "object" &&
+          "code" in error &&
+          (error as { code?: string }).code === "P2002";
+        if (attempt < 2 && isUniqueViolation) {
+          candidateId = nextStudentId(candidateId);
+          continue;
+        }
+        throw error;
+      }
+    }
+    if (!student) throw new Error("Failed to allocate a student ID");
 
     await logActivity({
       userId: user.id,
