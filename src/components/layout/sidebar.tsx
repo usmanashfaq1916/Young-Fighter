@@ -65,7 +65,11 @@ export function Sidebar({
 
   return (
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col bg-navy text-white lg:flex">
-      <div className="flex items-center gap-3 px-5 py-5">
+      <Link
+        href="/"
+        aria-label="Young Fighters Academy — home"
+        className="flex items-center gap-3 px-5 py-5 transition hover:opacity-90"
+      >
         <Image
           src="/YFA_logo.svg"
           alt="Young Fighters Academy"
@@ -81,7 +85,7 @@ export function Sidebar({
             Cricket Academy
           </p>
         </div>
-      </div>
+      </Link>
 
       <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-2" aria-label="Main">
         {items.map((item) => (

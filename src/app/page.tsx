@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import {
   Users,
@@ -18,6 +17,13 @@ import {
 } from "lucide-react";
 import { db } from "@/lib/db";
 import { ACADEMY_NAME } from "@/lib/constants";
+import { LandingHeader } from "@/components/landing/landing-header";
+import { LandingFooter } from "@/components/landing/landing-footer";
+import { WhatsAppIcon } from "@/components/landing/whatsapp-icon";
+
+const CONTACT_PHONE = "+92 3325 4221555";
+const WHATSAPP_LINK =
+  "https://wa.me/9233254221555?text=Hello%20Young%20Fighters%20Academy!%20I%27d%20like%20to%20know%20more.";
 
 export const dynamic = "force-dynamic";
 
@@ -116,7 +122,7 @@ export default async function HomePage() {
   for (const s of settings) settingMap[s.key] = s.value;
 
   const academyName = settingMap.academyName || ACADEMY_NAME;
-  const phone = settingMap.academyPhone || "+92 300 0000000";
+  const phone = settingMap.academyPhone || CONTACT_PHONE;
   const email = settingMap.academyEmail || "info@youngfighters.com.pk";
   const address = settingMap.academyAddress || "City Ground, Pakistan";
 
@@ -129,31 +135,7 @@ export default async function HomePage() {
 
   return (
     <div className="min-h-dvh bg-background text-foreground">
-      <header className="bg-navy text-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-4">
-          <div className="flex items-center gap-3">
-            <Image
-              src="/YFA_logo.svg"
-              alt="Young Fighters Academy"
-              width={42}
-              height={42}
-              className="rounded-lg"
-            />
-            <div>
-              <p className="text-sm font-black tracking-wide text-gold-light">
-                YOUNG FIGHTERS
-              </p>
-              <p className="text-[10px] uppercase tracking-widest text-white/60">
-                Cricket Academy
-              </p>
-            </div>
-          </div>
-          <Link href="/login" className="btn-gold">
-            Sign in
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
-      </header>
+      <LandingHeader active="home" />
 
       <section className="bg-gradient-to-br from-navy via-navy-light to-navy text-white">
         <div className="mx-auto max-w-6xl px-5 pb-20 pt-16 text-center md:pb-24 md:pt-20">
@@ -374,6 +356,22 @@ export default async function HomePage() {
                 </div>
               </div>
               <div className="flex items-start gap-3">
+                <WhatsAppIcon className="mt-0.5 h-5 w-5 shrink-0 text-success" />
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+                    WhatsApp
+                  </p>
+                  <a
+                    href={WHATSAPP_LINK}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm font-semibold text-success hover:underline"
+                  >
+                    Chat with us on WhatsApp
+                  </a>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
                 <Mail className="mt-0.5 h-5 w-5 shrink-0 text-gold-dark" />
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted">
@@ -398,28 +396,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <footer className="bg-navy py-8 text-white">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-5 sm:flex-row">
-          <div className="flex items-center gap-2">
-            <Image
-              src="/YFA_logo.svg"
-              alt="Young Fighters Academy"
-              width={28}
-              height={28}
-              className="rounded-md"
-            />
-            <p className="text-sm font-bold tracking-wide">
-              {academyName}
-            </p>
-          </div>
-          <p className="text-xs text-white/60">
-            © {new Date().getFullYear()} {academyName}. All rights reserved.
-          </p>
-          <Link href="/login" className="text-xs font-semibold text-gold-light hover:underline">
-            Sign in
-          </Link>
-        </div>
-      </footer>
+      <LandingFooter academyName={academyName} />
     </div>
   );
 }

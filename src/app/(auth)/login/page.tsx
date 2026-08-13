@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { verifySession } from "@/lib/auth";
 import { LoginForm } from "./login-form";
@@ -21,16 +22,22 @@ export default async function LoginPage({
       <div className="w-full max-w-md">
         <div className="card overflow-hidden">
           <div className="bg-gradient-to-b from-navy to-navy-light px-8 pb-10 pt-10 text-center">
-            <Image
-              src="/YFA_logo.svg"
-              alt="Young Fighters Academy"
-              width={110}
-              height={110}
-              className="mx-auto drop-shadow-lg"
-            />
-            <h1 className="mt-4 text-2xl font-black tracking-tight text-white">
-              Young Fighters Academy
-            </h1>
+            <Link
+              href="/"
+              aria-label="Young Fighters Academy — home"
+              className="inline-block transition hover:opacity-90"
+            >
+              <Image
+                src="/YFA_logo.svg"
+                alt="Young Fighters Academy"
+                width={110}
+                height={110}
+                className="mx-auto drop-shadow-lg"
+              />
+              <h1 className="mt-4 text-2xl font-black tracking-tight text-white">
+                Young Fighters Academy
+              </h1>
+            </Link>
             <p className="mt-1 text-sm text-white/70">
               Cricket Academy Management Platform
             </p>

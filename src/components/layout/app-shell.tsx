@@ -72,7 +72,11 @@ export function AppShell({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-5 py-5">
-              <div className="flex items-center gap-3">
+              <Link
+                href="/"
+                aria-label="Young Fighters Academy — home"
+                className="flex items-center gap-3 transition hover:opacity-90"
+              >
                 <Image
                   src="/YFA_logo.svg"
                   alt="Young Fighters Academy"
@@ -88,7 +92,7 @@ export function AppShell({
                     Cricket Academy
                   </p>
                 </div>
-              </div>
+              </Link>
               <button
                 onClick={() => setDrawerOpen(false)}
                 aria-label="Close navigation"

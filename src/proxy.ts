@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { decryptSession } from "@/lib/session";
 
-const PUBLIC_PATHS = ["/login", "/forgot-password", "/reset-password"];
+const PUBLIC_PATHS = ["/login", "/forgot-password", "/reset-password", "/contact"];
 
 const ROLE_PREFIX: Record<string, string> = {
   ADMIN: "/dashboard",
