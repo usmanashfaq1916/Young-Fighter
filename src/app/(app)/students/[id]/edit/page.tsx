@@ -65,6 +65,7 @@ export default async function EditStudentPage({
         photoUrl: student.photoUrl,
       }}
       batches={batches}
+      todayStr={new Date().toISOString().slice(0, 10)}
     />
   );
 }

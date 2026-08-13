@@ -69,10 +69,12 @@ export function StudentForm({
   student,
   batches,
   defaultJoinDate,
+  todayStr,
 }: {
   student?: StudentFormData & { id: string; studentId?: string; photoUrl?: string | null };
   batches: { id: string; name: string }[];
   defaultJoinDate?: string;
+  todayStr?: string;
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -199,7 +201,7 @@ export function StudentForm({
               type="date"
               className="input"
               {...register("dob")}
-              max={new Date().toISOString().slice(0, 10)}
+              max={todayStr ?? new Date().toISOString().slice(0, 10)}
             />
           </Field>
           <Field label="Gender" required error={errors.gender?.message}>

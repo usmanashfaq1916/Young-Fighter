@@ -16,7 +16,7 @@ import { useTheme } from "next-themes";
 import { Avatar } from "@/components/ui/avatar";
 import { signOut } from "@/app/actions/auth";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 
 export function Topbar({
   title,
@@ -36,6 +36,11 @@ export function Topbar({
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setMenuOpen(false));
@@ -88,10 +93,14 @@ export function Topbar({
           aria-label="Toggle theme"
           className="rounded-lg p-2 text-muted transition hover:bg-surface-alt"
         >
-          {theme === "dark" ? (
-            <Sun className="h-5 w-5" />
-          ) : theme === "light" ? (
-            <Monitor className="h-5 w-5" />
+          {mounted ? (
+            theme === "dark" ? (
+              <Sun className="h-5 w-5" />
+            ) : theme === "light" ? (
+              <Monitor className="h-5 w-5" />
+            ) : (
+              <Moon className="h-5 w-5" />
+            )
           ) : (
             <Moon className="h-5 w-5" />
           )}
