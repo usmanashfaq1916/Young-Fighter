@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { requireRole } from "@/lib/auth";
-import { markAllRead } from "@/lib/notifications";
+import { markAllRead, notifyUsers } from "@/lib/notifications";
 import { logActivity } from "@/lib/activity";
 
 export async function markNotificationsReadAction() {
@@ -50,13 +50,17 @@ export async function createAnnouncementAction(input: {
     },
   });
 
-  const roles = ["ADMIN", "COACH", "STUDENT", "PARENT"].filter(
+  const roles = (["ADMIN", "COACH", "STUDENT", "PARENT"] as const).filter(
     (r) => input.audience === "ALL" || r === input.audience
-  ) as never[];
+  );
 
-  await db.notification.createMany({
-    data: roles.flatMap((role) => [{ title: input.title, body: input.body, role }]),
-  });
+  for (const role of roles) {
+    await notifyUsers(role, {
+      title: input.title.trim(),
+      body: input.body.trim(),
+      type: "announcement",
+    });
+  }
 
   await logActivity({
     userId: user.id,

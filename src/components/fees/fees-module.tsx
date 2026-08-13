@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, useTransition } from "react";
-import { Plus, FileText, MessageCircle, CheckCircle2 } from "lucide-react";
+import { Plus, FileText, MessageCircle, CheckCircle2, HandCoins } from "lucide-react";
 import { SearchBar, FilterPill } from "@/components/ui/search-bar";
 import { Pagination } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Modal } from "@/components/ui/modal";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useDebouncedValue } from "@/hooks/use-debounce";
 import { formatMoney, formatMonth, currentMonth, waLink } from "@/lib/utils";
 import {
@@ -21,6 +22,7 @@ import {
   recordFeeAction,
   markFeePaidAction,
   sendFeeReminderAction,
+  waiveFeeAction,
 } from "@/app/actions/fees";
 import { downloadReceipt } from "@/lib/receipt-pdf";
 import { useToast } from "@/components/providers/toast-provider";
@@ -34,6 +36,7 @@ type FeeRow = {
   paidAmount: number;
   balance: number;
   status: string;
+  overdue?: boolean;
   paymentMethod: string | null;
   paymentDate: string | null;
   receiptNumber: string | null;
@@ -59,6 +62,9 @@ type PageData = {
     totalDue: number;
     expected: number;
     count: number;
+    overdue: number;
+    overdueCount: number;
+    collectionRate: number;
   };
 };
 
@@ -101,6 +107,7 @@ export function FeesModule({ initialMonth }: { initialMonth: string }) {
   const [form, setForm] = useState<PaymentForm>(emptyForm);
   const [searching, setSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<{ id: string; fullName: string; studentId: string }[]>([]);
+  const [waiveTarget, setWaiveTarget] = useState<FeeRow | null>(null);
 
   const fetchPage = useCallback(
     async (page: number) => {
@@ -203,6 +210,20 @@ export function FeesModule({ initialMonth }: { initialMonth: string }) {
     }
   };
 
+  const confirmWaive = () => {
+    if (!waiveTarget) return;
+    startTransition(async () => {
+      const res = await waiveFeeAction(waiveTarget.student.id, waiveTarget.month);
+      setWaiveTarget(null);
+      if (res.ok) {
+        toast("Fee waived", "success");
+        void fetchPage(data?.page ?? 1);
+      } else {
+        toast(res.error, "error");
+      }
+    });
+  };
+
   const downloadReceiptFor = (fee: FeeRow) => {
     downloadReceipt({
       receiptNumber: fee.receiptNumber ?? `RCP-${fee.id.slice(0, 8)}`,
@@ -227,8 +248,13 @@ export function FeesModule({ initialMonth }: { initialMonth: string }) {
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <StatCard label="Collected" value={formatMoney(data.summary.totalCollected)} tone="green" />
           <StatCard label="Due" value={formatMoney(data.summary.totalDue)} tone={data.summary.totalDue > 0 ? "red" : "green"} />
-          <StatCard label="Expected" value={formatMoney(data.summary.expected)} tone="navy" />
-          <StatCard label="Records" value={String(data.summary.count)} tone="gold" />
+          <StatCard
+            label="Overdue"
+            value={formatMoney(data.summary.overdue)}
+            sub={data.summary.overdueCount > 0 ? `${data.summary.overdueCount} records` : undefined}
+            tone={data.summary.overdue > 0 ? "red" : "green"}
+          />
+          <StatCard label="Collection %" value={`${data.summary.collectionRate}%`} tone="navy" />
         </div>
       )}
 
@@ -248,6 +274,8 @@ export function FeesModule({ initialMonth }: { initialMonth: string }) {
             { value: "PAID", label: "Paid" },
             { value: "PARTIAL", label: "Partial" },
             { value: "PENDING", label: "Pending" },
+            { value: "OVERDUE", label: "Overdue" },
+            { value: "WAIVED", label: "Waived" },
           ]}
         />
         <SearchBar
@@ -333,10 +361,14 @@ export function FeesModule({ initialMonth }: { initialMonth: string }) {
                             ? "green"
                             : fee.status === "PARTIAL"
                               ? "amber"
-                              : "red"
+                              : fee.status === "WAIVED"
+                                ? "gray"
+                                : fee.overdue
+                                  ? "red"
+                                  : "red"
                         }
                       >
-                        {feeStatusLabel[fee.status]}
+                        {feeStatusLabel[fee.overdue ? "OVERDUE" : fee.status]}
                       </Badge>
                     </td>
                     <td className="px-4 py-3">
@@ -359,6 +391,14 @@ export function FeesModule({ initialMonth }: { initialMonth: string }) {
                               className="rounded-lg p-2 text-success transition hover:bg-success/10"
                             >
                               <CheckCircle2 className="h-4 w-4" />
+                            </button>
+                            <button
+                              title="Waive fee"
+                              onClick={() => setWaiveTarget(fee)}
+                              disabled={pending}
+                              className="rounded-lg p-2 text-muted transition hover:bg-surface-alt hover:text-foreground"
+                            >
+                              <HandCoins className="h-4 w-4" />
                             </button>
                             {fee.student.whatsapp && (
                               <button
@@ -530,6 +570,16 @@ export function FeesModule({ initialMonth }: { initialMonth: string }) {
           </div>
         </div>
       </Modal>
+
+      <ConfirmDialog
+        open={!!waiveTarget}
+        onClose={() => setWaiveTarget(null)}
+        onConfirm={confirmWaive}
+        title="Waive this fee?"
+        message={`Waive the ${waiveTarget ? formatMonth(waiveTarget.month) : ""} fee of ${waiveTarget ? formatMoney(waiveTarget.balance) : ""} for ${waiveTarget?.student.fullName ?? ""}? The balance will be set to zero and the record marked as waived.`}
+        confirmLabel="Waive fee"
+        loading={pending}
+      />
     </div>
   );
 }

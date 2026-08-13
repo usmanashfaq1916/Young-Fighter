@@ -566,7 +566,9 @@ export function StudentProfile({
                               ? "green"
                               : f.status === "PARTIAL"
                                 ? "amber"
-                                : "red"
+                                : f.status === "WAIVED"
+                                  ? "gray"
+                                  : "red"
                           }
                         >
                           {feeStatusLabel[f.status]}

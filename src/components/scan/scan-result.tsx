@@ -13,19 +13,17 @@ type ScanStudent = {
   fullName: string;
   photoUrl: string | null;
   batch: { name: string } | null;
-  coach: { fullName: string } | null;
 };
 
 export function ScanResult({
-  student,
   todayLabel,
   baseUrl,
 }: {
-  student: ScanStudent;
   todayLabel: string;
   baseUrl: string;
 }) {
   const [status, setStatus] = useState<"loading" | "idle" | "done" | "error">("loading");
+  const [student, setStudent] = useState<ScanStudent | null>(null);
   const [todayStatus, setTodayStatus] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [marking, setMarking] = useState<string | null>(null);
@@ -37,6 +35,7 @@ export function ScanResult({
       .then(async (res) => {
         if (!res.ok) throw new Error((await res.json()).error ?? "Scan failed");
         const data = await res.json();
+        setStudent(data.student);
         setTodayStatus(data.todayStatus);
         setStatus("idle");
       })
@@ -69,7 +68,7 @@ export function ScanResult({
     return (
       <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-navy px-4">
         <Loader2 className="h-8 w-8 animate-spin text-gold" />
-        <p className="text-sm text-white/60">Verifying student…</p>
+        <p className="text-sm text-white/60">Verifying code…</p>
       </div>
     );
   }
@@ -80,11 +79,16 @@ export function ScanResult({
         <X className="h-10 w-10 text-danger" />
         <h1 className="text-xl font-black text-white">{error}</h1>
         {error === "Unauthorized" && (
-          <Link href={`/login?next=${encodeURIComponent(`/scan/${token}`)}`}>
-            <Button>
-              <LogIn className="h-4 w-4" /> Sign in to continue
-            </Button>
-          </Link>
+          <>
+            <p className="max-w-sm text-sm text-white/60">
+              Sign in with an admin or coach account to verify students and mark attendance.
+            </p>
+            <Link href={`/login?next=${encodeURIComponent(`/scan/${token}`)}`}>
+              <Button>
+                <LogIn className="h-4 w-4" /> Sign in to continue
+              </Button>
+            </Link>
+          </>
         )}
       </div>
     );
@@ -93,29 +97,34 @@ export function ScanResult({
   return (
     <div className="flex min-h-dvh flex-col items-center bg-surface px-4 py-10">
       <div className="w-full max-w-md rounded-3xl border border-border bg-card p-6 shadow-lg">
-        <div className="flex flex-col items-center text-center">
-          {student.photoUrl ? (
-            <Image
-              src={student.photoUrl}
-              alt={student.fullName}
-              width={96}
-              height={96}
-              className="rounded-full object-cover"
-            />
-          ) : (
-            <div className="flex h-24 w-24 items-center justify-center rounded-full bg-navy text-3xl font-black text-gold-light">
-              {student.fullName.charAt(0)}
-            </div>
-          )}
-          <h1 className="mt-3 text-2xl font-black">{student.fullName}</h1>
-          <p className="text-sm text-muted">
-            {student.studentId}
-            {student.batch?.name ? ` · ${student.batch.name}` : ""}
-          </p>
-          {student.coach && (
-            <p className="text-xs text-muted">Coach: {student.coach.fullName}</p>
-          )}
-        </div>
+        {student ? (
+          <div className="flex flex-col items-center text-center">
+            {student.photoUrl ? (
+              <Image
+                src={student.photoUrl}
+                alt={student.fullName}
+                width={96}
+                height={96}
+                className="rounded-full object-cover"
+              />
+            ) : (
+              <div className="flex h-24 w-24 items-center justify-center rounded-full bg-navy text-3xl font-black text-gold-light">
+                {student.fullName.charAt(0)}
+              </div>
+            )}
+            <h1 className="mt-3 text-2xl font-black">{student.fullName}</h1>
+            <p className="text-sm text-muted">
+              {student.studentId}
+              {student.batch?.name ? ` · ${student.batch.name}` : ""}
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center py-4 text-center">
+            <Check className="h-10 w-10 text-success" />
+            <h1 className="mt-2 text-xl font-black">Valid academy code</h1>
+            <p className="text-sm text-muted">Student identity is shown to authorized staff.</p>
+          </div>
+        )}
 
         <div className="my-5 rounded-2xl bg-surface-alt px-4 py-3 text-center">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted">

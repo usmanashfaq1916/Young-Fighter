@@ -260,6 +260,7 @@ model Fee {
   receiptNumber String?       @unique
   status        FeeStatus     @default(PENDING)
   remarks       String?
+  waivedBy      String?
   createdBy     String
   updatedBy     String?
   createdAt     DateTime      @default(now())

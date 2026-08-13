@@ -159,31 +159,43 @@ export async function getMonthlySeries(
 ): Promise<MonthPoint[]> {
   const scope = scopedWhere(user, filters);
   const now = new Date();
-  const points: MonthPoint[] = [];
+  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - months + 1, 1));
+  const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
 
-  for (let i = months - 1; i >= 0; i--) {
-    const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
-    const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i + 1, 1));
-    const label = start.toLocaleDateString("en-GB", { month: "short", year: "2-digit" });
+  const monthKeys = Array.from({ length: months }, (_, i) => {
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (months - 1 - i), 1));
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+  });
 
-    const [newStudents, fees, expenses, att] = await Promise.all([
-      db.student.count({
-        where: { ...scope, createdAt: { gte: start, lt: end } },
-      }),
-      db.fee.findMany({
-        where: { student: scope, month: `${start.getUTCFullYear()}-${String(start.getUTCMonth() + 1).padStart(2, "0")}` },
-        select: { paidAmount: true },
-      }),
-      db.expense.aggregate({
-        where: { date: { gte: start, lt: end } },
-        _sum: { amount: true },
-      }),
-      db.attendance.groupBy({
-        by: ["status"],
-        where: { date: { gte: start, lt: end }, student: scope },
-        _count: { _all: true },
-      }),
-    ]);
+  const [newStudents, fees, expenses, att] = await Promise.all([
+    db.student.findMany({
+      where: { ...scope, deletedAt: null, createdAt: { gte: start, lt: end } },
+      select: { createdAt: true },
+    }),
+    db.fee.findMany({
+      where: { student: scope, month: { in: monthKeys } },
+      select: { month: true, paidAmount: true },
+    }),
+    db.expense.findMany({
+      where: { date: { gte: start, lt: end } },
+      select: { date: true, amount: true },
+    }),
+    db.attendance.groupBy({
+      by: ["status", "date"],
+      where: { date: { gte: start, lt: end }, student: scope },
+      _count: { _all: true },
+    }),
+  ]);
+
+  const keyOf = (d: Date) =>
+    `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+
+  return monthKeys.map((month) => {
+    const studentsCount = newStudents.filter((s) => keyOf(s.createdAt) === month).length;
+    const income = fees.filter((f) => f.month === month).reduce((s, f) => s + f.paidAmount, 0);
+    const expenseSum = expenses
+      .filter((e) => keyOf(e.date) === month)
+      .reduce((s, e) => s + e.amount, 0);
 
     const counts: Record<string, number> = {
       PRESENT: 0,
@@ -192,20 +204,24 @@ export async function getMonthlySeries(
       LATE: 0,
       EXCUSED: 0,
     };
-    for (const g of att) counts[g.status] = g._count._all;
+    for (const g of att) {
+      if (keyOf(g.date) === month) counts[g.status] = g._count._all;
+    }
     const present = counts.PRESENT + counts.LATE;
     const total = present + counts.ABSENT + counts.LEAVE + counts.EXCUSED;
 
-    points.push({
-      month: `${start.getUTCFullYear()}-${String(start.getUTCMonth() + 1).padStart(2, "0")}`,
-      label,
-      students: newStudents,
+    return {
+      month,
+      label: new Date(`${month}-01T00:00:00Z`).toLocaleDateString("en-GB", {
+        month: "short",
+        year: "2-digit",
+      }),
+      students: studentsCount,
       attendancePct: total > 0 ? Math.round((present / total) * 100) : 0,
-      income: fees.reduce((s, f) => s + f.paidAmount, 0),
-      expenses: expenses._sum.amount ?? 0,
-    });
-  }
-  return points;
+      income,
+      expenses: expenseSum,
+    };
+  });
 }
 
 export async function getTopPlayers(user: SessionUser, limit = 5) {

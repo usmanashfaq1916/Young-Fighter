@@ -18,6 +18,9 @@ export async function GET(request: NextRequest) {
   const page = Math.max(1, Number(searchParams.get("page") ?? 1));
   const pageSize = Math.min(50, Math.max(5, Number(searchParams.get("pageSize") ?? 15)));
 
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
   const studentWhere: Prisma.StudentWhereInput = {
     ...studentScopeWhere(user),
     deletedAt: null,
@@ -25,9 +28,15 @@ export async function GET(request: NextRequest) {
   };
   const where: Prisma.FeeWhereInput = {
     ...(month ? { month } : {}),
-    ...(status ? { status: status as never } : {}),
     student: studentWhere,
   };
+  if (status === "OVERDUE") {
+    where.status = { in: ["PENDING", "PARTIAL"] };
+    where.balance = { gt: 0 };
+    where.dueDate = { lt: today };
+  } else if (status) {
+    where.status = status as never;
+  }
   if (q) {
     where.student = {
       ...studentWhere,
@@ -39,7 +48,7 @@ export async function GET(request: NextRequest) {
     };
   }
 
-  const [fees, total, summary] = await Promise.all([
+  const [fees, total, summary, overdueAgg] = await Promise.all([
     db.fee.findMany({
       where,
       orderBy: [{ month: "desc" }, { student: { fullName: "asc" } }],
@@ -65,19 +74,38 @@ export async function GET(request: NextRequest) {
       _sum: { paidAmount: true, balance: true, monthlyFee: true },
       _count: { _all: true },
     }),
+    db.fee.aggregate({
+      where: {
+        student: studentWhere,
+        status: { in: ["PENDING", "PARTIAL"] },
+        balance: { gt: 0 },
+        dueDate: { lt: today },
+      },
+      _sum: { balance: true },
+      _count: { _all: true },
+    }),
   ]);
 
+  const collected = summary._sum.paidAmount ?? 0;
+  const expected = summary._sum.monthlyFee ?? 0;
+
   return NextResponse.json({
-    fees,
+    fees: fees.map((f) => ({
+      ...f,
+      overdue: f.dueDate < today && f.balance > 0 && (f.status === "PENDING" || f.status === "PARTIAL"),
+    })),
     total,
     page,
     pageSize,
     pages: Math.ceil(total / pageSize),
     summary: {
-      totalCollected: summary._sum.paidAmount ?? 0,
+      totalCollected: collected,
       totalDue: summary._sum.balance ?? 0,
-      expected: summary._sum.monthlyFee ?? 0,
+      expected,
       count: summary._count._all,
+      overdue: overdueAgg._sum.balance ?? 0,
+      overdueCount: overdueAgg._count._all,
+      collectionRate: expected > 0 ? Math.round((collected / expected) * 100) : 0,
     },
   });
 }

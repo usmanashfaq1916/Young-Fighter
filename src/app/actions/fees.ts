@@ -158,6 +158,51 @@ export async function markFeePaidAction(studentId: string, month: string) {
   return { ok: true as const, receiptNumber: receiptNumber ?? undefined };
 }
 
+export async function waiveFeeAction(studentId: string, month: string) {
+  const user = await requireRole("ADMIN");
+  if (!(await assertStudentAccess(user, studentId))) {
+    return { ok: false as const, error: "Access denied." };
+  }
+
+  const fee = await db.fee.findUnique({
+    where: { studentId_month: { studentId, month } },
+  });
+  if (!fee) return { ok: false as const, error: "Fee record not found." };
+  if (fee.status === "PAID" || fee.status === "WAIVED") {
+    return { ok: false as const, error: "This fee is already settled." };
+  }
+
+  await db.fee.update({
+    where: { id: fee.id },
+    data: {
+      balance: 0,
+      status: "WAIVED",
+      waivedBy: user.id,
+      remarks: fee.remarks
+        ? `${fee.remarks} | Waived by ${user.fullName}`
+        : `Waived by ${user.fullName}`,
+      updatedBy: user.id,
+    },
+  });
+
+  const student = await db.student.findUnique({
+    where: { id: studentId },
+    select: { fullName: true },
+  });
+  await logActivity({
+    userId: user.id,
+    type: "FEE_UPDATED",
+    action: "Fee waived",
+    entity: "fee",
+    entityId: fee.id,
+    details: `${student?.fullName ?? studentId} — ${month}`,
+  });
+  revalidatePath("/fees");
+  revalidatePath("/dashboard");
+  revalidatePath(`/students/${studentId}`);
+  return { ok: true as const };
+}
+
 export async function sendFeeReminderAction(studentId: string, month: string) {
   await requireRole("ADMIN");
 

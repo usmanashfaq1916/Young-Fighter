@@ -10,11 +10,17 @@ export default async function NotificationsPage() {
 
   const [notifications, announcements] = await Promise.all([
     db.notification.findMany({
-      where: { userId: user.id },
+      where: {
+        OR: [{ userId: user.id }, { role: user.role, userId: null }],
+      },
       orderBy: { createdAt: "desc" },
       take: 100,
     }),
-    db.announcement.findMany({ orderBy: { createdAt: "desc" }, take: 20 }),
+    db.announcement.findMany({
+      where: { OR: [{ audience: "ALL" }, { audience: user.role }] },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+    }),
   ]);
 
   return (
@@ -24,7 +30,14 @@ export default async function NotificationsPage() {
         description="In-app alerts and academy announcements."
       />
       <NotificationsList
-        initial={JSON.parse(JSON.stringify(notifications))}
+        initial={JSON.parse(
+          JSON.stringify(
+            notifications.map((n) => ({
+              ...n,
+              read: n.userId === user.id ? n.read : true,
+            }))
+          )
+        )}
         announcements={JSON.parse(JSON.stringify(announcements))}
         role={user.role}
       />

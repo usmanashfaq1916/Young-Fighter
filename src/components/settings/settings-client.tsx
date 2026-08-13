@@ -159,7 +159,22 @@ export function SettingsClient({
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-sm font-bold uppercase tracking-wide text-muted">Batches</h3>
           {user.role === "ADMIN" && (
-            <Button size="sm" onClick={() => setBatchModal({ name: "", description: "", coachId: "" })}>
+            <Button
+              size="sm"
+              onClick={() =>
+                setBatchModal({
+                  name: "",
+                  description: "",
+                  coachId: "",
+                  ageGroup: "",
+                  trainingDays: "",
+                  trainingTime: "",
+                  trainingLocation: "",
+                  capacity: "",
+                  isActive: true,
+                })
+              }
+            >
               <Plus className="h-4 w-4" /> New batch
             </Button>
           )}
@@ -264,6 +279,66 @@ export function SettingsClient({
                 </option>
               ))}
             </select>
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted">Age group</span>
+              <input
+                className="input"
+                value={batchModal?.ageGroup ?? ""}
+                onChange={(e) => setBatchModal((m) => (m ? { ...m, ageGroup: e.target.value } : m))}
+                placeholder="e.g. 10–14 yrs"
+              />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted">Capacity</span>
+              <input
+                type="number"
+                min={0}
+                className="input"
+                value={batchModal?.capacity ?? ""}
+                onChange={(e) => setBatchModal((m) => (m ? { ...m, capacity: e.target.value } : m))}
+                placeholder="0 = unlimited"
+              />
+            </label>
+          </div>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted">Training days</span>
+            <input
+              className="input"
+              value={batchModal?.trainingDays ?? ""}
+              onChange={(e) => setBatchModal((m) => (m ? { ...m, trainingDays: e.target.value } : m))}
+              placeholder="e.g. Mon, Wed, Fri"
+            />
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted">Training time</span>
+              <input
+                className="input"
+                value={batchModal?.trainingTime ?? ""}
+                onChange={(e) => setBatchModal((m) => (m ? { ...m, trainingTime: e.target.value } : m))}
+                placeholder="e.g. 4:00–6:00 PM"
+              />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted">Location</span>
+              <input
+                className="input"
+                value={batchModal?.trainingLocation ?? ""}
+                onChange={(e) => setBatchModal((m) => (m ? { ...m, trainingLocation: e.target.value } : m))}
+                placeholder="e.g. Main Ground"
+              />
+            </label>
+          </div>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={batchModal?.isActive ?? true}
+              onChange={(e) => setBatchModal((m) => (m ? { ...m, isActive: e.target.checked } : m))}
+              className="h-4 w-4"
+            />
+            <span className="font-medium">Active batch</span>
           </label>
           <div className="flex justify-end gap-2">
             <Button variant="secondary" onClick={() => setBatchModal(null)}>

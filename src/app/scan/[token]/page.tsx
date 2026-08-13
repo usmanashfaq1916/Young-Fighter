@@ -11,19 +11,11 @@ export default async function ScanTokenPage({
 }) {
   const { token } = await params;
 
-  const student = await db.student.findFirst({
+  const exists = await db.student.count({
     where: { qrToken: token, deletedAt: null },
-    select: {
-      id: true,
-      studentId: true,
-      fullName: true,
-      photoUrl: true,
-      batch: { select: { name: true } },
-      coach: { select: { fullName: true } },
-    },
   });
 
-  if (!student) {
+  if (!exists) {
     return (
       <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-navy px-4 text-center">
         <p className="text-4xl">🔍</p>
@@ -38,7 +30,6 @@ export default async function ScanTokenPage({
 
   return (
     <ScanResult
-      student={JSON.parse(JSON.stringify(student))}
       todayLabel={formatDate(new Date())}
       baseUrl={process.env.NEXT_PUBLIC_APP_URL ?? ""}
     />
