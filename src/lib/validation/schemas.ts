@@ -72,6 +72,12 @@ export const studentSchema = z.object({
     .max(10_000_000),
   emergencyContact: optionalPkPhone,
   bloodGroup: z.string().optional().or(z.literal("")),
+  email: z.email({ error: "Please enter a valid email address." }).optional().or(z.literal("")),
+  playingRole: z.string().max(50).optional().or(z.literal("")),
+  battingStyle: z.string().max(50).optional().or(z.literal("")),
+  bowlingStyle: z.string().max(50).optional().or(z.literal("")),
+  preferredPosition: z.string().max(50).optional().or(z.literal("")),
+  jerseyNumber: z.coerce.number().int().min(0).max(999).optional(),
   status: z.enum(STUDENT_STATUSES, { error: "Please select a status." }),
 });
 

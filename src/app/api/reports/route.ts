@@ -64,10 +64,10 @@ export async function GET(request: NextRequest) {
     }),
   ]);
 
-  const attendanceByStudent: Record<string, { PRESENT: number; ABSENT: number; LEAVE: number }> = {};
+  const attendanceByStudent: Record<string, { PRESENT: number; ABSENT: number; LEAVE: number; LATE: number; EXCUSED: number }> = {};
   for (const a of attendance) {
     const key = a.studentId;
-    if (!attendanceByStudent[key]) attendanceByStudent[key] = { PRESENT: 0, ABSENT: 0, LEAVE: 0 };
+    if (!attendanceByStudent[key]) attendanceByStudent[key] = { PRESENT: 0, ABSENT: 0, LEAVE: 0, LATE: 0, EXCUSED: 0 };
     attendanceByStudent[key][a.status]++;
   }
 

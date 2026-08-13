@@ -11,7 +11,7 @@ import { attendanceLabel } from "@/lib/constants";
 type HistoryRow = {
   id: string;
   date: string;
-  status: "PRESENT" | "ABSENT" | "LEAVE";
+  status: "PRESENT" | "ABSENT" | "LEAVE" | "LATE" | "EXCUSED";
   student: { id: string; fullName: string; studentId: string; photoUrl?: string | null };
 };
 
@@ -61,8 +61,10 @@ export function AttendanceHistory({
                   <p className="text-sm font-bold">{formatDate(date)}</p>
                   <div className="flex gap-1.5">
                     <Badge tone="green">{counts.PRESENT ?? 0} present</Badge>
+                    <Badge tone="gold">{counts.LATE ?? 0} late</Badge>
                     <Badge tone="red">{counts.ABSENT ?? 0} absent</Badge>
-                    <Badge tone="gold">{counts.LEAVE ?? 0} leave</Badge>
+                    <Badge tone="blue">{counts.LEAVE ?? 0} leave</Badge>
+                    <Badge tone="gray">{counts.EXCUSED ?? 0} excused</Badge>
                   </div>
                 </div>
                 <ul className="divide-y divide-border">
@@ -81,7 +83,11 @@ export function AttendanceHistory({
                             ? "green"
                             : r.status === "ABSENT"
                               ? "red"
-                              : "gold"
+                              : r.status === "LATE"
+                                ? "gold"
+                                : r.status === "LEAVE"
+                                  ? "blue"
+                                  : "gray"
                         }
                       >
                         {attendanceLabel[r.status]}

@@ -13,7 +13,7 @@ import {
   createStudentAction,
   updateStudentAction,
 } from "@/app/actions/students";
-import { SKILL_LEVELS, GENDERS, STUDENT_STATUSES, BLOOD_GROUPS } from "@/lib/constants";
+import { SKILL_LEVELS, GENDERS, STUDENT_STATUSES, BLOOD_GROUPS, PLAYING_ROLES, BATTING_STYLES, BOWLING_STYLES } from "@/lib/constants";
 import { useToast } from "@/components/providers/toast-provider";
 
 type StudentFormData = {
@@ -30,6 +30,12 @@ type StudentFormData = {
   monthlyFee: number;
   emergencyContact?: string;
   bloodGroup?: string;
+  email?: string;
+  playingRole?: string;
+  battingStyle?: string;
+  bowlingStyle?: string;
+  preferredPosition?: string;
+  jerseyNumber?: number | string;
   status: string;
   photoDataUrl?: string | null;
 };
@@ -104,6 +110,12 @@ export function StudentForm({
       monthlyFee: 5000,
       emergencyContact: "",
       bloodGroup: "",
+      email: "",
+      playingRole: "",
+      battingStyle: "",
+      bowlingStyle: "",
+      preferredPosition: "",
+      jerseyNumber: "",
       status: "ACTIVE",
       photoDataUrl: null,
       ...(student ?? {}),
@@ -122,6 +134,7 @@ export function StudentForm({
           ? values.joinDate.toISOString().slice(0, 10)
           : String(values.joinDate),
       monthlyFee: Number(values.monthlyFee),
+      jerseyNumber: values.jerseyNumber === "" ? undefined : Number(values.jerseyNumber),
     };
     startTransition(async () => {
       try {
@@ -260,6 +273,59 @@ export function StudentForm({
           </Field>
           <Field label="Emergency Contact" error={errors.emergencyContact?.message}>
             <input className="input" {...register("emergencyContact")} />
+          </Field>
+          <Field label="Email (optional)" error={errors.email?.message}>
+            <input type="email" className="input" {...register("email")} />
+          </Field>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-border bg-card p-5">
+        <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-muted">
+          Cricket Details
+        </h2>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Playing Role" error={errors.playingRole?.message}>
+            <select className="input" {...register("playingRole")}>
+              <option value="">Select…</option>
+              {PLAYING_ROLES.map((r) => (
+                <option key={r} value={r}>
+                  {r.charAt(0) + r.slice(1).toLowerCase().replace("-", " ")}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Batting Style" error={errors.battingStyle?.message}>
+            <select className="input" {...register("battingStyle")}>
+              <option value="">Select…</option>
+              {BATTING_STYLES.map((s) => (
+                <option key={s} value={s}>
+                  {s.split("_").map((w) => w.charAt(0) + w.slice(1).toLowerCase()).join(" ")}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Bowling Style" error={errors.bowlingStyle?.message}>
+            <select className="input" {...register("bowlingStyle")}>
+              <option value="">Select…</option>
+              {BOWLING_STYLES.map((s) => (
+                <option key={s} value={s}>
+                  {s.split("_").map((w) => w.charAt(0) + w.slice(1).toLowerCase()).join(" ")}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Preferred Position" error={errors.preferredPosition?.message}>
+            <input className="input" {...register("preferredPosition")} placeholder="e.g. Opener, No. 4, First change" />
+          </Field>
+          <Field label="Jersey Number" error={errors.jerseyNumber?.message}>
+            <input
+              type="number"
+              min={0}
+              max={999}
+              className="input"
+              {...register("jerseyNumber")}
+            />
           </Field>
         </div>
       </div>

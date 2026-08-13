@@ -22,7 +22,7 @@ import { queueOfflineWrite, useConnectivity } from "@/components/providers/conne
 import { useToast } from "@/components/providers/toast-provider";
 import { cn } from "@/lib/utils";
 
-type Status = "PRESENT" | "ABSENT" | "LEAVE" | null;
+type Status = "PRESENT" | "ABSENT" | "LEAVE" | "LATE" | "EXCUSED" | null;
 
 type StudentRow = {
   id: string;
@@ -47,7 +47,13 @@ export function AttendanceMark({
   const [batchId, setBatchId] = useState("");
   const [month, setMonth] = useState(initialMonth);
   const [students, setStudents] = useState<StudentRow[]>([]);
-  const [monthSummary, setMonthSummary] = useState({ PRESENT: 0, ABSENT: 0, LEAVE: 0 });
+  const [monthSummary, setMonthSummary] = useState({
+    PRESENT: 0,
+    ABSENT: 0,
+    LEAVE: 0,
+    LATE: 0,
+    EXCUSED: 0,
+  });
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -136,9 +142,10 @@ export function AttendanceMark({
       if (s.status) acc[s.status]++;
       return acc;
     },
-    { PRESENT: 0, ABSENT: 0, LEAVE: 0 }
+    { PRESENT: 0, ABSENT: 0, LEAVE: 0, LATE: 0, EXCUSED: 0 }
   );
-  const totalMarked = counts.PRESENT + counts.ABSENT + counts.LEAVE;
+  const totalMarked =
+    counts.PRESENT + counts.ABSENT + counts.LEAVE + counts.LATE + counts.EXCUSED;
   const totalStudents = students.length;
 
   return (
@@ -201,8 +208,8 @@ export function AttendanceMark({
         <StatCard label="Present" value={counts.PRESENT} icon={<Check className="h-5 w-5" />} tone="green" />
         <StatCard label="Absent" value={counts.ABSENT} icon={<X className="h-5 w-5" />} tone="red" />
         <StatCard
-          label="Month (P/A/L)"
-          value={`${monthSummary.PRESENT}/${monthSummary.ABSENT}/${monthSummary.LEAVE}`}
+          label="Month (P/L/A)"
+          value={`${monthSummary.PRESENT}/${monthSummary.LATE}/${monthSummary.ABSENT}`}
           icon={<CalendarDays className="h-5 w-5" />}
           tone="gold"
         />
@@ -234,7 +241,7 @@ export function AttendanceMark({
                   </p>
                 </div>
                 <div className="flex gap-1.5">
-                  {(["PRESENT", "ABSENT", "LEAVE"] as const).map((status) => (
+                  {(["PRESENT", "ABSENT", "LEAVE", "LATE", "EXCUSED"] as const).map((status) => (
                     <button
                       key={status}
                       onClick={() => {
@@ -246,6 +253,7 @@ export function AttendanceMark({
                           )
                         );
                       }}
+                      title={status}
                       className={cn(
                         "rounded-lg px-3 py-1.5 text-xs font-bold transition",
                         s.status === status
@@ -253,11 +261,23 @@ export function AttendanceMark({
                             ? "bg-success text-white"
                             : status === "ABSENT"
                               ? "bg-danger text-white"
-                              : "bg-gold text-navy"
+                              : status === "LATE"
+                                ? "bg-gold text-navy"
+                                : status === "LEAVE"
+                                  ? "bg-info text-white"
+                                  : "bg-border text-foreground"
                           : "bg-surface-alt text-muted hover:bg-border"
                       )}
                     >
-                      {status === "PRESENT" ? "P" : status === "ABSENT" ? "A" : "L"}
+                      {status === "PRESENT"
+                        ? "P"
+                        : status === "ABSENT"
+                          ? "A"
+                          : status === "LEAVE"
+                            ? "L"
+                            : status === "LATE"
+                              ? "Lt"
+                              : "E"}
                     </button>
                   ))}
                 </div>
@@ -269,7 +289,11 @@ export function AttendanceMark({
                           ? "green"
                           : s.status === "ABSENT"
                             ? "red"
-                            : "gold"
+                            : s.status === "LATE"
+                              ? "gold"
+                              : s.status === "LEAVE"
+                                ? "blue"
+                                : "gray"
                       }
                     >
                       {s.status}

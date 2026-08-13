@@ -8,6 +8,7 @@ export function StatCard({
   icon,
   trend,
   trendLabel,
+  sub,
   tone = "green",
 }: {
   label: string;
@@ -15,6 +16,7 @@ export function StatCard({
   icon?: ReactNode;
   trend?: number;
   trendLabel?: string;
+  sub?: ReactNode;
   tone?: "green" | "gold" | "navy" | "red" | "blue";
 }) {
   const tones = {
@@ -34,6 +36,7 @@ export function StatCard({
         <p className="mt-1.5 truncate text-xl font-black text-foreground md:text-2xl">
           {value}
         </p>
+        {sub && <p className="mt-1 text-[11px] font-medium text-muted">{sub}</p>}
         {trend !== undefined && (
           <div className="mt-1 flex items-center gap-1">
             <span

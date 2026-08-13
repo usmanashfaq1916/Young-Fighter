@@ -20,6 +20,12 @@ type Batch = {
   description: string | null;
   coachId: string | null;
   coach: { fullName: string } | null;
+  ageGroup: string | null;
+  trainingDays: string | null;
+  trainingTime: string | null;
+  trainingLocation: string | null;
+  capacity: number;
+  isActive: boolean;
   _count: { students: number };
 };
 
@@ -47,7 +53,18 @@ export function SettingsClient({
   const [items, setItems] = useState(batches);
   const [values, setValues] = useState<Record<string, string>>(initial);
   const [dirty, setDirty] = useState(false);
-  const [batchModal, setBatchModal] = useState<null | { id?: string; name: string; description: string; coachId: string }>(null);
+  const [batchModal, setBatchModal] = useState<null | {
+    id?: string;
+    name: string;
+    description: string;
+    coachId: string;
+    ageGroup: string;
+    trainingDays: string;
+    trainingTime: string;
+    trainingLocation: string;
+    capacity: number | string;
+    isActive: boolean;
+  }>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const saveSettings = () => {
@@ -66,11 +83,23 @@ export function SettingsClient({
             name: batchModal.name,
             description: batchModal.description,
             coachId: batchModal.coachId || undefined,
+            ageGroup: batchModal.ageGroup,
+            trainingDays: batchModal.trainingDays,
+            trainingTime: batchModal.trainingTime,
+            trainingLocation: batchModal.trainingLocation,
+            capacity: Number(batchModal.capacity) || 0,
+            isActive: batchModal.isActive,
           })
         : await createBatchAction({
             name: batchModal.name,
             description: batchModal.description,
             coachId: batchModal.coachId || undefined,
+            ageGroup: batchModal.ageGroup,
+            trainingDays: batchModal.trainingDays,
+            trainingTime: batchModal.trainingTime,
+            trainingLocation: batchModal.trainingLocation,
+            capacity: Number(batchModal.capacity) || 0,
+            isActive: batchModal.isActive,
           });
       if (res.ok) {
         toast(batchModal.id ? "Batch updated" : "Batch created", "success");
@@ -144,18 +173,41 @@ export function SettingsClient({
                 <div className="min-w-0 flex-1">
                   <p className="flex items-center gap-2 font-semibold">
                     {b.name}
-                    <Badge tone="gray">{b._count.students} students</Badge>
+                    {!b.isActive && <Badge tone="red">Inactive</Badge>}
+                    <Badge tone="gray">
+                      {b._count.students}/{b.capacity || "∞"} students
+                    </Badge>
                   </p>
                   <p className="truncate text-xs text-muted">
                     {b.description || "No description"}
                     {b.coach?.fullName ? ` · Coach: ${b.coach.fullName}` : ""}
+                    {b.ageGroup ? ` · Age: ${b.ageGroup}` : ""}
                   </p>
+                  {(b.trainingDays || b.trainingTime || b.trainingLocation) && (
+                    <p className="truncate text-xs text-muted">
+                      Training:{" "}
+                      {[b.trainingDays, b.trainingTime, b.trainingLocation]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </p>
+                  )}
                 </div>
                 {user.role === "ADMIN" && (
                   <div className="flex gap-1">
                     <button
                       onClick={() =>
-                        setBatchModal({ id: b.id, name: b.name, description: b.description ?? "", coachId: b.coachId ?? "" })
+                        setBatchModal({
+                          id: b.id,
+                          name: b.name,
+                          description: b.description ?? "",
+                          coachId: b.coachId ?? "",
+                          ageGroup: b.ageGroup ?? "",
+                          trainingDays: b.trainingDays ?? "",
+                          trainingTime: b.trainingTime ?? "",
+                          trainingLocation: b.trainingLocation ?? "",
+                          capacity: b.capacity ?? 0,
+                          isActive: b.isActive,
+                        })
                       }
                       className="rounded-lg p-2 text-muted transition hover:bg-surface-alt hover:text-foreground"
                     >

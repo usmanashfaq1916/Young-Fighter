@@ -6,13 +6,13 @@ import { requireRole } from "@/lib/auth";
 import { studentScopeWhere, studentIdsInScope } from "@/lib/rbac";
 import { attendanceSchema } from "@/lib/validation/schemas";
 import { logActivity } from "@/lib/activity";
-import { notifyUsers } from "@/lib/notifications";
-import { dateOnlyUTC } from "@/lib/utils";
+import { notifyUsers, createNotification } from "@/lib/notifications";
+import { dateOnlyUTC, currentMonth } from "@/lib/utils";
 
 export async function markAttendanceAction(input: {
   date: string;
   batchId?: string;
-  entries: { studentId: string; status: "PRESENT" | "ABSENT" | "LEAVE" }[];
+  entries: { studentId: string; status: "PRESENT" | "ABSENT" | "LEAVE" | "LATE" | "EXCUSED" }[];
 }) {
   const user = await requireRole("ADMIN", "COACH");
 
@@ -84,9 +84,63 @@ export async function markAttendanceAction(input: {
     body: `${user.fullName} marked attendance for ${validEntries.length} students on ${date.toISOString().slice(0, 10)}.`,
   });
 
+  await sendLowAttendanceAlerts(validEntries.map((e) => e.studentId));
+
   revalidatePath("/attendance");
   revalidatePath("/dashboard");
   return { ok: true as const, count: validEntries.length, names };
+}
+
+async function sendLowAttendanceAlerts(studentIds: string[]) {
+  try {
+    if (studentIds.length === 0) return;
+    const month = currentMonth();
+    const start = new Date(`${month}-01`);
+    const end = new Date(`${month}-01`);
+    end.setMonth(end.getMonth() + 1);
+
+    const rows = await db.attendance.groupBy({
+      by: ["studentId", "status"],
+      where: { studentId: { in: studentIds }, date: { gte: start, lt: end } },
+      _count: { _all: true },
+    });
+    const perStudent = new Map<string, { present: number; total: number }>();
+    for (const r of rows) {
+      const entry = perStudent.get(r.studentId) ?? { present: 0, total: 0 };
+      entry.total += r._count._all;
+      if (r.status === "PRESENT" || r.status === "LATE") entry.present += r._count._all;
+      perStudent.set(r.studentId, entry);
+    }
+
+    const low = Array.from(perStudent.entries()).filter(
+      ([, v]) => v.total >= 3 && (v.present / v.total) * 100 < 75
+    );
+    if (low.length === 0) return;
+
+    const [names, parents] = await Promise.all([
+      db.student.findMany({
+        where: { id: { in: low.map(([id]) => id) } },
+        select: { id: true, fullName: true },
+      }),
+      db.studentParent.findMany({
+        where: { studentId: { in: low.map(([id]) => id) } },
+        select: { parentId: true, studentId: true },
+      }),
+    ]);
+    const nameMap = new Map(names.map((n) => [n.id, n.fullName]));
+    for (const p of parents) {
+      const name = nameMap.get(p.studentId);
+      if (!name) continue;
+      await createNotification({
+        userId: p.parentId,
+        title: "Low attendance alert",
+        body: `${name}'s attendance is below 75% this month. Please contact the academy.`,
+        type: "warning",
+      });
+    }
+  } catch (error) {
+    console.error("Low attendance alert failed:", error);
+  }
 }
 
 export async function bulkMarkAbsentAction(input: {

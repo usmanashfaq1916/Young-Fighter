@@ -72,7 +72,17 @@ export async function createAnnouncementAction(input: {
   return { ok: true as const };
 }
 
-export async function createBatchAction(input: { name: string; description?: string; coachId?: string }) {
+export async function createBatchAction(input: {
+  name: string;
+  description?: string;
+  coachId?: string;
+  ageGroup?: string;
+  trainingDays?: string;
+  trainingTime?: string;
+  trainingLocation?: string;
+  capacity?: number;
+  isActive?: boolean;
+}) {
   await requireRole("ADMIN");
   if (!input.name.trim()) return { ok: false as const, error: "Batch name is required." };
   const existing = await db.batch.findUnique({ where: { name: input.name.trim() } });
@@ -83,6 +93,12 @@ export async function createBatchAction(input: { name: string; description?: str
       name: input.name.trim(),
       description: input.description || null,
       coachId: input.coachId || null,
+      ageGroup: input.ageGroup || null,
+      trainingDays: input.trainingDays || null,
+      trainingTime: input.trainingTime || null,
+      trainingLocation: input.trainingLocation || null,
+      capacity: input.capacity ?? 0,
+      isActive: input.isActive ?? true,
     },
   });
   revalidatePath("/settings");
@@ -91,7 +107,17 @@ export async function createBatchAction(input: { name: string; description?: str
 
 export async function updateBatchAction(
   id: string,
-  input: { name: string; description?: string; coachId?: string }
+  input: {
+    name: string;
+    description?: string;
+    coachId?: string;
+    ageGroup?: string;
+    trainingDays?: string;
+    trainingTime?: string;
+    trainingLocation?: string;
+    capacity?: number;
+    isActive?: boolean;
+  }
 ) {
   await requireRole("ADMIN");
   if (!input.name.trim()) return { ok: false as const, error: "Batch name is required." };
@@ -101,6 +127,12 @@ export async function updateBatchAction(
       name: input.name.trim(),
       description: input.description || null,
       coachId: input.coachId || null,
+      ageGroup: input.ageGroup || null,
+      trainingDays: input.trainingDays || null,
+      trainingTime: input.trainingTime || null,
+      trainingLocation: input.trainingLocation || null,
+      capacity: input.capacity ?? 0,
+      isActive: input.isActive ?? true,
     },
   });
   revalidatePath("/settings");

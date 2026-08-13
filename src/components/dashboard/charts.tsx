@@ -201,4 +201,53 @@ export function PerformanceRadar({
   );
 }
 
+export function SkillDistributionChart({ data }: { data: { name: string; value: number }[] }) {
+  const palette = [COLORS.green, COLORS.blue, COLORS.gold, COLORS.navy];
+  return (
+    <ChartCard title="Skill Distribution" subtitle="Students by skill level">
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            data={data}
+            dataKey="value"
+            nameKey="name"
+            innerRadius="50%"
+            outerRadius="80%"
+            paddingAngle={3}
+          >
+            {data.map((_, i) => (
+              <Cell key={i} fill={palette[i % palette.length]} />
+            ))}
+          </Pie>
+          <Tooltip />
+          <Legend />
+        </PieChart>
+      </ResponsiveContainer>
+    </ChartCard>
+  );
+}
+
+export function BatchDistributionChart({ data }: { data: { name: string; value: number }[] }) {
+  return (
+    <ChartCard title="Batch Distribution" subtitle="Students per batch">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={data} layout="vertical" margin={{ left: 8, right: 8 }}>
+          <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+          <XAxis type="number" tickLine={false} axisLine={false} allowDecimals={false} />
+          <YAxis
+            type="category"
+            dataKey="name"
+            tickLine={false}
+            axisLine={false}
+            width={90}
+            tick={{ fontSize: 11 }}
+          />
+          <Tooltip />
+          <Bar dataKey="value" name="Students" fill={COLORS.navy} radius={[0, 6, 6, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </ChartCard>
+  );
+}
+
 export { COLORS };

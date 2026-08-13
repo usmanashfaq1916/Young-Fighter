@@ -56,6 +56,12 @@ export async function createStudentAction(input: {
   monthlyFee: number;
   emergencyContact?: string;
   bloodGroup?: string;
+  email?: string;
+  playingRole?: string;
+  battingStyle?: string;
+  bowlingStyle?: string;
+  preferredPosition?: string;
+  jerseyNumber?: number;
   status: string;
   photoDataUrl?: string | null;
 }) {
@@ -118,6 +124,12 @@ export async function createStudentAction(input: {
             monthlyFee: data.monthlyFee,
             emergencyContact: data.emergencyContact || null,
             bloodGroup: data.bloodGroup || null,
+            email: data.email || null,
+            playingRole: data.playingRole || null,
+            battingStyle: data.battingStyle || null,
+            bowlingStyle: data.bowlingStyle || null,
+            preferredPosition: data.preferredPosition || null,
+            jerseyNumber: data.jerseyNumber || null,
             status: data.status,
             photoUrl,
             coachId: user.role === "COACH" ? user.id : null,
@@ -173,6 +185,12 @@ export async function updateStudentAction(
     monthlyFee: number;
     emergencyContact?: string;
     bloodGroup?: string;
+    email?: string;
+    playingRole?: string;
+    battingStyle?: string;
+    bowlingStyle?: string;
+    preferredPosition?: string;
+    jerseyNumber?: number;
     status: string;
     photoDataUrl?: string | null;
     keepPhoto?: boolean;
@@ -228,6 +246,12 @@ export async function updateStudentAction(
         monthlyFee: data.monthlyFee,
         emergencyContact: data.emergencyContact || null,
         bloodGroup: data.bloodGroup || null,
+        email: data.email || null,
+        playingRole: data.playingRole || null,
+        battingStyle: data.battingStyle || null,
+        bowlingStyle: data.bowlingStyle || null,
+        preferredPosition: data.preferredPosition || null,
+        jerseyNumber: data.jerseyNumber || null,
         status: data.status,
         photoUrl,
         updatedBy: user.id,

@@ -35,6 +35,9 @@ import {
   feeStatusLabel,
   paymentMethodLabel,
   matchResultLabel,
+  playingRoleLabel,
+  battingStyleLabel,
+  bowlingStyleLabel,
 } from "@/lib/constants";
 import { useToast } from "@/components/providers/toast-provider";
 
@@ -42,6 +45,15 @@ type Props = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   student: any;
   attendanceSummary: Record<string, number>;
+  monthlyAttendance: {
+    month: string;
+    PRESENT: number;
+    ABSENT: number;
+    LEAVE: number;
+    LATE: number;
+    EXCUSED: number;
+    total: number;
+  }[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   fees: any[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -54,10 +66,11 @@ type Props = {
   initialTab?: string;
 };
 
-const TABS = ["overview", "fees", "performance", "matches", "qr"] as const;
+const TABS = ["profile", "attendance", "fees", "performance", "matches", "qr"] as const;
 export function StudentProfile({
   student,
   attendanceSummary,
+  monthlyAttendance,
   fees,
   performance,
   matches,
@@ -202,16 +215,49 @@ export function StudentProfile({
               <span>
                 Age {calculateAge(student.dob)} · Joined {formatDate(student.joinDate)}
               </span>
+              {student.coach && <span>Coach: {student.coach.fullName}</span>}
             </div>
             <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm">
               <span className="flex items-center gap-1.5 text-muted">
                 <Phone className="h-3.5 w-3.5" /> {student.mobile}
               </span>
+              {student.email && <span className="text-muted">{student.email}</span>}
               <span className="text-muted">Guardian: {student.guardianName}</span>
               {student.bloodGroup && (
                 <span className="text-muted">Blood: {student.bloodGroup}</span>
               )}
             </div>
+            {(student.playingRole ||
+              student.battingStyle ||
+              student.bowlingStyle ||
+              student.jerseyNumber ||
+              student.preferredPosition) && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {student.playingRole && (
+                  <Badge tone="navy">
+                    {playingRoleLabel[student.playingRole] ?? student.playingRole}
+                  </Badge>
+                )}
+                {student.battingStyle && (
+                  <Badge tone="gold">
+                    Bat: {battingStyleLabel[student.battingStyle] ?? student.battingStyle}
+                  </Badge>
+                )}
+                {student.bowlingStyle && (
+                  <Badge tone="gold">
+                    Bowl: {bowlingStyleLabel[student.bowlingStyle] ?? student.bowlingStyle}
+                  </Badge>
+                )}
+                {student.jerseyNumber && (
+                  <Badge tone="green">#{student.jerseyNumber}</Badge>
+                )}
+                {student.preferredPosition && (
+                  <Badge tone="blue" className="capitalize">
+                    {student.preferredPosition}
+                  </Badge>
+                )}
+              </div>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {isAdmin && (
@@ -257,7 +303,7 @@ export function StudentProfile({
       </div>
 
       <div className="space-y-4">
-        {tab === "overview" && (
+        {tab === "profile" && (
           <div className="grid gap-4 lg:grid-cols-2">
             {isAdmin && (
               <div className="rounded-2xl border border-border bg-card p-5">
@@ -291,10 +337,95 @@ export function StudentProfile({
             )}
             <div className="rounded-2xl border border-border bg-card p-5">
               <h3 className="mb-3 text-sm font-bold uppercase tracking-wide text-muted">
+                Personal Information
+              </h3>
+              <dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+                <div>
+                  <dt className="text-xs uppercase tracking-wide text-muted">Mobile</dt>
+                  <dd className="mt-0.5 font-medium">{student.mobile}</dd>
+                </div>
+                {student.whatsapp && (
+                  <div>
+                    <dt className="text-xs uppercase tracking-wide text-muted">WhatsApp</dt>
+                    <dd className="mt-0.5 font-medium">{student.whatsapp}</dd>
+                  </div>
+                )}
+                {student.email && (
+                  <div>
+                    <dt className="text-xs uppercase tracking-wide text-muted">Email</dt>
+                    <dd className="mt-0.5 font-medium">{student.email}</dd>
+                  </div>
+                )}
+                <div>
+                  <dt className="text-xs uppercase tracking-wide text-muted">Guardian</dt>
+                  <dd className="mt-0.5 font-medium">{student.guardianName}</dd>
+                </div>
+                {student.address && (
+                  <div className="sm:col-span-2">
+                    <dt className="text-xs uppercase tracking-wide text-muted">Address</dt>
+                    <dd className="mt-0.5 font-medium">{student.address}</dd>
+                  </div>
+                )}
+                {student.emergencyContact && (
+                  <div>
+                    <dt className="text-xs uppercase tracking-wide text-muted">Emergency Contact</dt>
+                    <dd className="mt-0.5 font-medium">{student.emergencyContact}</dd>
+                  </div>
+                )}
+                {student.coach && (
+                  <div>
+                    <dt className="text-xs uppercase tracking-wide text-muted">Assigned Coach</dt>
+                    <dd className="mt-0.5 font-medium">{student.coach.fullName}</dd>
+                  </div>
+                )}
+                <div>
+                  <dt className="text-xs uppercase tracking-wide text-muted">Date of Birth</dt>
+                  <dd className="mt-0.5 font-medium">{formatDate(student.dob)}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs uppercase tracking-wide text-muted">Join Date</dt>
+                  <dd className="mt-0.5 font-medium">{formatDate(student.joinDate)}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs uppercase tracking-wide text-muted">Skill Level</dt>
+                  <dd className="mt-0.5 font-medium capitalize">{skillLabel[student.skillLevel]}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs uppercase tracking-wide text-muted">Batch</dt>
+                  <dd className="mt-0.5 font-medium">{student.batch?.name ?? "—"}</dd>
+                </div>
+              </dl>
+            </div>
+            {student.parentLinks && student.parentLinks.length > 0 && (
+              <div className="rounded-2xl border border-border bg-card p-5 lg:col-span-2">
+                <h3 className="mb-3 text-sm font-bold uppercase tracking-wide text-muted">
+                  Linked Accounts
+                </h3>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {student.parentLinks.map((l: { id: string; parent: { fullName: string; email: string | null; mobile: string | null } }) => (
+                    <div key={l.id} className="rounded-xl bg-surface-alt px-3 py-2 text-sm">
+                      <p className="font-medium">{l.parent.fullName}</p>
+                      <p className="text-muted">
+                        {l.parent.email ?? ""}
+                        {l.parent.email && l.parent.mobile ? " · " : ""}
+                        {l.parent.mobile ?? ""}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {tab === "attendance" && (
+          <div className="grid gap-4 lg:grid-cols-2">
+            <div className="rounded-2xl border border-border bg-card p-5">
+              <h3 className="mb-3 text-sm font-bold uppercase tracking-wide text-muted">
                 Attendance Summary
               </h3>
               <div className="space-y-3">
-                {["PRESENT", "ABSENT", "LEAVE"].map((s) => (
+                {["PRESENT", "ABSENT", "LEAVE", "LATE", "EXCUSED"].map((s) => (
                   <div key={s} className="flex items-center gap-3">
                     <span className="w-20 text-sm font-medium">
                       {attendanceLabel[s]}
@@ -307,12 +438,16 @@ export function StudentProfile({
                             ? "bg-success"
                             : s === "ABSENT"
                               ? "bg-danger"
-                              : "bg-gold"
+                              : s === "LATE"
+                                ? "bg-gold"
+                                : s === "LEAVE"
+                                  ? "bg-info"
+                                  : "bg-border"
                         )}
                         style={{
                           width: `${Math.min(
                             100,
-                            (attendanceSummary[s] / Math.max(1, attendanceSummary.PRESENT + attendanceSummary.ABSENT + attendanceSummary.LEAVE)) * 100
+                            (attendanceSummary[s] / Math.max(1, attendanceSummary.PRESENT + attendanceSummary.ABSENT + attendanceSummary.LEAVE + attendanceSummary.LATE + attendanceSummary.EXCUSED)) * 100
                           )}%`,
                         }}
                       />
@@ -322,6 +457,63 @@ export function StudentProfile({
                     </span>
                   </div>
                 ))}
+              </div>
+              <p className="mt-4 text-xs text-muted">
+                Attendance %:{" "}
+                <span className="font-bold text-foreground">
+                  {(() => {
+                    const present = attendanceSummary.PRESENT + attendanceSummary.LATE;
+                    const total = present + attendanceSummary.ABSENT + attendanceSummary.LEAVE + attendanceSummary.EXCUSED;
+                    return total > 0 ? `${Math.round((present / total) * 100)}%` : "—";
+                  })()}
+                </span>
+              </p>
+            </div>
+            <div className="rounded-2xl border border-border bg-card">
+              <h3 className="px-5 pt-5 text-sm font-bold uppercase tracking-wide text-muted">
+                Monthly Attendance
+              </h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="border-b border-border bg-surface-alt text-xs uppercase tracking-wide text-muted">
+                    <tr>
+                      <th className="px-4 py-3 font-semibold">Month</th>
+                      <th className="px-4 py-3 font-semibold">Present</th>
+                      <th className="px-4 py-3 font-semibold">Late</th>
+                      <th className="px-4 py-3 font-semibold">Absent</th>
+                      <th className="px-4 py-3 font-semibold">Leave</th>
+                      <th className="px-4 py-3 font-semibold">Excused</th>
+                      <th className="px-4 py-3 font-semibold">%</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {monthlyAttendance.length === 0 && (
+                      <tr>
+                        <td colSpan={7} className="px-4 py-10">
+                          <EmptyState
+                            title="No attendance yet"
+                            description="Attendance records will appear here."
+                          />
+                        </td>
+                      </tr>
+                    )}
+                    {monthlyAttendance.map((m) => (
+                      <tr key={m.month}>
+                        <td className="px-4 py-3 font-medium">{formatMonth(m.month)}</td>
+                        <td className="px-4 py-3">{m.PRESENT}</td>
+                        <td className="px-4 py-3 text-muted">{m.LATE}</td>
+                        <td className="px-4 py-3 text-danger">{m.ABSENT}</td>
+                        <td className="px-4 py-3 text-muted">{m.LEAVE}</td>
+                        <td className="px-4 py-3 text-muted">{m.EXCUSED}</td>
+                        <td className="px-4 py-3 font-bold text-primary">
+                          {m.total > 0
+                            ? `${Math.round(((m.PRESENT + m.LATE) / m.total) * 100)}%`
+                            : "—"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>

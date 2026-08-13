@@ -46,7 +46,13 @@ export async function GET(request: NextRequest) {
   const byStudent = new Map(attendance.map((a) => [a.studentId, a.status]));
 
   // Month summary for stats: attendance counts per status in the given month.
-  let monthSummary: Record<string, number> = { PRESENT: 0, ABSENT: 0, LEAVE: 0 };
+  let monthSummary: Record<string, number> = {
+    PRESENT: 0,
+    ABSENT: 0,
+    LEAVE: 0,
+    LATE: 0,
+    EXCUSED: 0,
+  };
   if (month) {
     const start = new Date(`${month}-01`);
     const end = new Date(`${month}-01`);
@@ -59,7 +65,7 @@ export async function GET(request: NextRequest) {
       },
       _count: { _all: true },
     });
-    monthSummary = { PRESENT: 0, ABSENT: 0, LEAVE: 0 };
+    monthSummary = { PRESENT: 0, ABSENT: 0, LEAVE: 0, LATE: 0, EXCUSED: 0 };
     for (const r of rows) monthSummary[r.status] = r._count._all;
   }
 

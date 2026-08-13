@@ -11,9 +11,9 @@ export const STUDENT_STATUSES = ["ACTIVE", "INACTIVE"] as const;
 
 export const USER_STATUSES = ["ACTIVE", "INACTIVE"] as const;
 
-export const ATTENDANCE_STATUSES = ["PRESENT", "ABSENT", "LEAVE"] as const;
+export const ATTENDANCE_STATUSES = ["PRESENT", "ABSENT", "LEAVE", "LATE", "EXCUSED"] as const;
 
-export const FEE_STATUSES = ["PAID", "PARTIAL", "PENDING"] as const;
+export const FEE_STATUSES = ["PAID", "PARTIAL", "PENDING", "OVERDUE", "WAIVED"] as const;
 
 export const PAYMENT_METHODS = [
   "CASH",
@@ -47,6 +47,50 @@ export const BLOOD_GROUPS = [
   "O+",
   "O-",
 ] as const;
+
+export const PLAYING_ROLES = [
+  "BATTER",
+  "BOWLER",
+  "ALL-ROUNDER",
+  "WICKETKEEPER",
+] as const;
+
+export const BATTING_STYLES = [
+  "RIGHT_HAND",
+  "LEFT_HAND",
+] as const;
+
+export const BOWLING_STYLES = [
+  "RIGHT_ARM_FAST",
+  "RIGHT_ARM_MEDIUM",
+  "RIGHT_ARM_OFF_SPIN",
+  "RIGHT_ARM_LEG_SPIN",
+  "LEFT_ARM_FAST",
+  "LEFT_ARM_MEDIUM",
+  "LEFT_ARM_SPIN",
+] as const;
+
+export const playingRoleLabel: Record<string, string> = {
+  BATTER: "Batter",
+  BOWLER: "Bowler",
+  "ALL-ROUNDER": "All-Rounder",
+  WICKETKEEPER: "Wicketkeeper",
+};
+
+export const battingStyleLabel: Record<string, string> = {
+  RIGHT_HAND: "Right Hand",
+  LEFT_HAND: "Left Hand",
+};
+
+export const bowlingStyleLabel: Record<string, string> = {
+  RIGHT_ARM_FAST: "Right-Arm Fast",
+  RIGHT_ARM_MEDIUM: "Right-Arm Medium",
+  RIGHT_ARM_OFF_SPIN: "Right-Arm Off Spin",
+  RIGHT_ARM_LEG_SPIN: "Right-Arm Leg Spin",
+  LEFT_ARM_FAST: "Left-Arm Fast",
+  LEFT_ARM_MEDIUM: "Left-Arm Medium",
+  LEFT_ARM_SPIN: "Left-Arm Spin",
+};
 
 export const ROLES = ["ADMIN", "COACH", "STUDENT", "PARENT"] as const;
 
@@ -108,12 +152,16 @@ export const attendanceLabel: Record<string, string> = {
   PRESENT: "Present",
   ABSENT: "Absent",
   LEAVE: "Leave",
+  LATE: "Late",
+  EXCUSED: "Excused",
 };
 
 export const feeStatusLabel: Record<string, string> = {
   PAID: "Paid",
   PARTIAL: "Partial",
   PENDING: "Pending",
+  OVERDUE: "Overdue",
+  WAIVED: "Waived",
 };
 
 export const paymentMethodLabel: Record<string, string> = {

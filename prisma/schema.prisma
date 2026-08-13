@@ -41,12 +41,16 @@ enum AttendanceStatus {
   PRESENT
   ABSENT
   LEAVE
+  LATE
+  EXCUSED
 }
 
 enum FeeStatus {
   PAID
   PARTIAL
   PENDING
+  OVERDUE
+  WAIVED
 }
 
 enum PaymentMethod {
@@ -140,14 +144,20 @@ model User {
 }
 
 model Batch {
-  id          String    @id @default(cuid())
-  name        String    @unique
-  description String?
-  coachId     String?
-  coach       User?     @relation(fields: [coachId], references: [id])
-  students    Student[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id               String    @id @default(cuid())
+  name             String    @unique
+  description      String?
+  coachId          String?
+  coach            User?     @relation(fields: [coachId], references: [id])
+  ageGroup         String?
+  trainingDays     String?
+  trainingTime     String?
+  trainingLocation String?
+  capacity         Int       @default(0)
+  isActive         Boolean   @default(true)
+  students         Student[]
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   @@index([coachId])
 }
@@ -171,6 +181,12 @@ model Student {
   bloodGroup       String?
   photoUrl         String?
   status           StudentStatus @default(ACTIVE)
+  email            String?
+  playingRole      String?
+  battingStyle     String?
+  bowlingStyle     String?
+  jerseyNumber     Int?
+  preferredPosition String?
   coachId          String?
   coach            User?         @relation("StudentCoach", fields: [coachId], references: [id])
   qrToken          String        @unique
