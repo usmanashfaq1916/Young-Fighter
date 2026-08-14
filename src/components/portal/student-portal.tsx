@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { QrCode, Trophy, Star, Wallet } from "lucide-react";
+import { QrCode, Trophy, Star, Wallet, Target, Dumbbell } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
 import { StatCard } from "@/components/ui/stat-card";
 import { PageHeader } from "@/components/ui/page-header";
 import { formatDate, formatMoney, formatMonth, calculateAge } from "@/lib/utils";
-import { attendanceLabel, feeStatusLabel, matchResultLabel, skillLabel } from "@/lib/constants";
+import { attendanceLabel, feeStatusLabel, matchResultLabel, skillLabel, goalStatusLabel, goalCategoryLabel, trainingCategoryLabel } from "@/lib/constants";
 import { generateQrDataUrl, studentQrContent } from "@/lib/qr";
 
 type StudentData = {
@@ -32,6 +32,23 @@ type StudentData = {
     catches: number;
     manOfTheMatch: boolean;
     match: { opponent: string; matchDate: string; result: string | null };
+  }[];
+  goals: {
+    id: string;
+    title: string;
+    description: string | null;
+    category: string;
+    baseline: string | null;
+    target: string | null;
+    progress: number;
+    status: string;
+    deadline: string | null;
+  }[];
+  trainingRecords: {
+    id: string;
+    present: boolean;
+    notes: string | null;
+    session: { date: string; topic: string; category: string; location: string | null };
   }[];
 };
 
@@ -262,6 +279,77 @@ export function StudentPortal({
             ))}
           </ul>
         )}
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-2">
+        <div className="rounded-2xl border border-border bg-card p-5">
+          <h3 className="mb-3 flex items-center gap-1.5 text-sm font-bold uppercase tracking-wide text-muted">
+            <Target className="h-4 w-4 text-gold" /> My Development Goals
+          </h3>
+          {student.goals.length === 0 ? (
+            <p className="text-sm text-muted">No development goals yet.</p>
+          ) : (
+            <ul className="space-y-3">
+              {student.goals.map((g) => (
+                <li key={g.id} className="rounded-xl bg-surface-alt p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm font-semibold">{g.title}</p>
+                    <Badge tone={g.status === "ACHIEVED" ? "green" : g.status === "IN_PROGRESS" ? "blue" : g.status === "CANCELLED" ? "red" : "gray"}>
+                      {goalStatusLabel[g.status] ?? g.status}
+                    </Badge>
+                  </div>
+                  <p className="mt-1 text-xs text-muted">
+                    {goalCategoryLabel[g.category] ?? g.category}
+                    {g.deadline ? ` · Due ${formatDate(g.deadline)}` : ""}
+                  </p>
+                  {(g.baseline || g.target) && (
+                    <p className="mt-1 text-xs text-muted">
+                      {g.baseline && <span>From {g.baseline}</span>}
+                      {g.baseline && g.target && <span> → </span>}
+                      {g.target && <span className="font-semibold text-foreground">{g.target}</span>}
+                    </p>
+                  )}
+                  <div className="mt-2">
+                    <div className="mb-1 flex items-center justify-between text-[10px]">
+                      <span className="font-semibold uppercase tracking-wide text-muted">Progress</span>
+                      <span className="font-bold">{g.progress}%</span>
+                    </div>
+                    <div className="h-1.5 overflow-hidden rounded-full bg-border">
+                      <div
+                        className={g.status === "ACHIEVED" ? "h-full rounded-full bg-success" : "h-full rounded-full bg-gold"}
+                        style={{ width: `${Math.min(100, Math.max(0, g.progress))}%` }}
+                      />
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="rounded-2xl border border-border bg-card p-5">
+          <h3 className="mb-3 flex items-center gap-1.5 text-sm font-bold uppercase tracking-wide text-muted">
+            <Dumbbell className="h-4 w-4 text-gold" /> Training Sessions
+          </h3>
+{student.trainingRecords.length === 0 ? (
+            <p className="text-sm text-muted">No training records yet.</p>
+          ) : (
+            <ul className="divide-y divide-border rounded-xl border border-border">
+              {student.trainingRecords.slice(0, 10).map((t) => (
+                <li key={t.id} className="flex items-center justify-between rounded-xl bg-surface-alt px-3 py-2 text-sm">
+                  <div>
+                    <p className="font-semibold">{t.session.topic}</p>
+                    <p className="text-xs text-muted">
+                      {formatDate(t.session.date)}
+                      {t.session.category ? ` · ${trainingCategoryLabel[t.session.category] ?? t.session.category}` : ""}
+                    </p>
+                  </div>
+                  <Badge tone={t.present ? "green" : "red"}>{t.present ? "Present" : "Absent"}</Badge>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
     </div>
   );

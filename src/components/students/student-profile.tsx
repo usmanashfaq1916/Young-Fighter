@@ -10,6 +10,8 @@ import {
   Pencil,
   QrCode,
   Printer,
+  Dumbbell,
+  Target,
   User as UserIcon,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
@@ -39,6 +41,9 @@ import {
   battingStyleLabel,
   bowlingStyleLabel,
   dismissalLabel,
+  goalStatusLabel,
+  goalCategoryLabel,
+  trainingCategoryLabel,
 } from "@/lib/constants";
 import { useToast } from "@/components/providers/toast-provider";
 
@@ -63,11 +68,15 @@ type Props = {
   matches: any[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   upcomingDues: any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  goals: any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  training: any[];
   role: string;
   initialTab?: string;
 };
 
-const TABS = ["profile", "attendance", "fees", "performance", "matches", "qr"] as const;
+const TABS = ["profile", "attendance", "fees", "performance", "matches", "training", "goals", "qr"] as const;
 export function StudentProfile({
   student,
   attendanceSummary,
@@ -76,6 +85,8 @@ export function StudentProfile({
   performance,
   matches,
   upcomingDues,
+  goals,
+  training,
   role,
   initialTab,
 }: Props) {
@@ -777,6 +788,127 @@ export function StudentProfile({
                 </tbody>
               </table>
             </div>
+          </div>
+        )}
+
+        {tab === "training" && (
+          <div className="rounded-2xl border border-border bg-card">
+            <div className="border-b border-border px-4 py-3">
+              <h3 className="text-sm font-bold uppercase tracking-wide text-muted">
+                Training Sessions
+              </h3>
+            </div>
+            {training.length === 0 ? (
+              <div className="p-4">
+                <EmptyState
+                  icon={<Dumbbell className="h-6 w-6" />}
+                  title="No training records"
+                  description="Training session attendance will appear here."
+                />
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="border-b border-border bg-surface-alt text-xs uppercase tracking-wide text-muted">
+                    <tr>
+                      <th className="px-4 py-3 font-semibold">Session</th>
+                      <th className="px-4 py-3 font-semibold">Date</th>
+                      <th className="hidden px-4 py-3 font-semibold sm:table-cell">Coach</th>
+                      <th className="px-4 py-3 font-semibold">Attendance</th>
+                      <th className="hidden px-4 py-3 font-semibold md:table-cell">Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {training.map((t) => (
+                      <tr key={t.id}>
+                        <td className="px-4 py-3">
+                          <div>
+                            <p className="font-semibold">{t.session.topic}</p>
+                            <p className="text-xs text-muted">
+                              {trainingCategoryLabel[t.session.category] ?? t.session.category}
+                              {t.session.location ? ` · ${t.session.location}` : ""}
+                            </p>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-muted">{formatDate(t.session.date)}</td>
+                        <td className="hidden px-4 py-3 text-muted sm:table-cell">
+                          {t.session.coach?.fullName ?? "—"}
+                        </td>
+                        <td className="px-4 py-3">
+                          <Badge tone={t.present ? "green" : "red"}>
+                            {t.present ? "Present" : "Absent"}
+                          </Badge>
+                        </td>
+                        <td className="hidden px-4 py-3 text-muted md:table-cell">
+                          {t.notes || t.highlights || "—"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {tab === "goals" && (
+          <div className="rounded-2xl border border-border bg-card">
+            <div className="border-b border-border px-4 py-3">
+              <h3 className="text-sm font-bold uppercase tracking-wide text-muted">
+                Development Goals
+              </h3>
+            </div>
+            {goals.length === 0 ? (
+              <div className="p-4">
+                <EmptyState
+                  icon={<Target className="h-6 w-6" />}
+                  title="No development goals"
+                  description="Coaches can set goals for this student."
+                />
+              </div>
+            ) : (
+              <div className="space-y-4 p-4">
+                {goals.map((g) => (
+                  <div key={g.id} className="rounded-xl border border-border p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <p className="font-semibold">{g.title}</p>
+                        <p className="text-xs text-muted">
+                          {goalCategoryLabel[g.category] ?? g.category}
+                          {g.coach ? ` · Coach: ${g.coach.fullName}` : ""}
+                          {g.deadline ? ` · Deadline ${formatDate(g.deadline)}` : ""}
+                        </p>
+                      </div>
+                      <Badge tone={g.status === "ACHIEVED" ? "green" : g.status === "IN_PROGRESS" ? "blue" : g.status === "CANCELLED" ? "red" : "gray"}>
+                        {goalStatusLabel[g.status] ?? g.status}
+                      </Badge>
+                    </div>
+                    {(g.baseline || g.target) && (
+                      <p className="mt-2 text-sm text-muted">
+                        {g.baseline && <span>From {g.baseline}</span>}
+                        {g.baseline && g.target && <span> → </span>}
+                        {g.target && <span className="font-semibold text-foreground">{g.target}</span>}
+                      </p>
+                    )}
+                    {g.description && <p className="mt-2 text-sm text-muted">{g.description}</p>}
+                    <div className="mt-3">
+                      <div className="mb-1 flex items-center justify-between text-xs">
+                        <span className="font-semibold uppercase tracking-wide text-muted">
+                          Progress
+                        </span>
+                        <span className="font-bold">{g.progress}%</span>
+                      </div>
+                      <div className="h-2 overflow-hidden rounded-full bg-surface-alt">
+                        <div
+                          className={g.status === "ACHIEVED" ? "h-full rounded-full bg-success" : "h-full rounded-full bg-gold"}
+                          style={{ width: `${Math.min(100, Math.max(0, g.progress))}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

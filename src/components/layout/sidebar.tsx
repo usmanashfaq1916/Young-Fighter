@@ -20,6 +20,9 @@ import {
   UserCog,
   History,
   Medal,
+  Target,
+  Dumbbell,
+  ClipboardList,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { signOut } from "@/app/actions/auth";
@@ -40,8 +43,11 @@ export const navItems: NavItem[] = [
   { href: "/attendance", label: "Attendance", icon: ClipboardCheck },
   { href: "/fees", label: "Fees", icon: Wallet },
   { href: "/performance", label: "Performance", icon: TrendingUp },
+  { href: "/goals", label: "Goals", icon: Target },
+  { href: "/training", label: "Training", icon: Dumbbell },
   { href: "/matches", label: "Matches", icon: Trophy },
   { href: "/rankings", label: "Rankings", icon: Medal },
+  { href: "/admissions", label: "Admissions", icon: ClipboardList },
   { href: "/expenses", label: "Expenses", icon: Receipt },
   { href: "/reports", label: "Reports", icon: FileBarChart },
   { href: "/scan", label: "Scan QR", icon: ScanLine },

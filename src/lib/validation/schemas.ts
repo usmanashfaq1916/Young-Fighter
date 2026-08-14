@@ -1,14 +1,18 @@
 import { z } from "zod";
 import {
+  ADMISSION_STATUSES,
   ATTENDANCE_STATUSES,
   DISMISSALS,
   EXPENSE_CATEGORIES,
   GENDERS,
+  GOAL_CATEGORIES,
+  GOAL_STATUSES,
   MATCH_RESULTS,
   MATCH_TYPES,
   PAYMENT_METHODS,
   SKILL_LEVELS,
   STUDENT_STATUSES,
+  TRAINING_CATEGORIES,
 } from "@/lib/constants";
 import { normalizePhone } from "@/lib/utils";
 
@@ -193,6 +197,70 @@ export const expenseSchema = z.object({
   notes: z.string().max(500).optional().or(z.literal("")),
 });
 
+export const goalSchema = z.object({
+  studentId: z.string().min(1, { error: "Please select a student." }),
+  title: z.string().min(2, { error: "Please enter a goal title." }).max(200),
+  description: z.string().max(1000).optional().or(z.literal("")),
+  category: z.enum(GOAL_CATEGORIES, { error: "Please select a category." }),
+  baseline: z.string().max(200).optional().or(z.literal("")),
+  target: z.string().max(200).optional().or(z.literal("")),
+  progress: z.coerce.number().int().min(0, { error: "Progress must be 0–100." }).max(100, { error: "Progress must be 0–100." }),
+  status: z.enum(GOAL_STATUSES, { error: "Please select a status." }),
+  deadline: z.coerce.date().optional().nullable(),
+});
+
+export const goalProgressSchema = z.object({
+  goalId: z.string().min(1),
+  progress: z.coerce.number().int().min(0, { error: "Progress must be 0–100." }).max(100, { error: "Progress must be 0–100." }),
+  note: z.string().max(500).optional().or(z.literal("")),
+});
+
+export const trainingSessionSchema = z.object({
+  date: z.coerce.date({ error: "Please select a valid session date." }),
+  batchId: z.string().optional().or(z.literal("")),
+  coachId: z.string().optional().or(z.literal("")),
+  topic: z.string().min(2, { error: "Please enter a session topic." }).max(200),
+  category: z.enum(TRAINING_CATEGORIES, { error: "Please select a category." }),
+  startTime: z.string().max(20).optional().or(z.literal("")),
+  endTime: z.string().max(20).optional().or(z.literal("")),
+  location: z.string().max(200).optional().or(z.literal("")),
+  notes: z.string().max(1000).optional().or(z.literal("")),
+});
+
+export const trainingRecordSchema = z.object({
+  sessionId: z.string().min(1),
+  entries: z.array(
+    z.object({
+      studentId: z.string().min(1),
+      present: z.boolean(),
+      notes: z.string().max(500).optional(),
+      highlights: z.string().max(500).optional(),
+    })
+  ),
+});
+
+export const admissionSchema = z.object({
+  studentName: z.string().min(2, { error: "Please enter the student's full name." }).max(100),
+  dob: z.coerce
+    .date({ error: "Please select a valid date of birth." })
+    .refine((d) => d < new Date(), { error: "Date of birth must be in the past." })
+    .refine((d) => d > new Date("1950-01-01"), { error: "Please select a valid date of birth." }),
+  gender: z.enum(GENDERS, { error: "Please select a gender." }),
+  guardianName: z.string().min(2, { error: "Please enter the guardian name." }).max(100),
+  phone: pkPhone,
+  email: z.email({ error: "Please enter a valid email address." }).optional().or(z.literal("")),
+  preferredBatchId: z.string().optional().or(z.literal("")),
+  experience: z.string().max(300).optional().or(z.literal("")),
+  playingRole: z.string().max(50).optional().or(z.literal("")),
+  message: z.string().max(1000).optional().or(z.literal("")),
+});
+
+export const admissionReviewSchema = z.object({
+  admissionId: z.string().min(1),
+  status: z.enum(ADMISSION_STATUSES, { error: "Please select a status." }),
+  note: z.string().max(500).optional().or(z.literal("")),
+});
+
 export const coachSchema = z.object({
   fullName: z.string().min(2, { error: "Please enter the full name." }),
   email: z.email({ error: "Please enter a valid email address." }),
@@ -252,3 +320,6 @@ export type PerformanceInput = z.infer<typeof performanceSchema>;
 export type ExpenseInput = z.infer<typeof expenseSchema>;
 export type CoachInput = z.infer<typeof coachSchema>;
 export type ParentInput = z.infer<typeof parentSchema>;
+export type GoalInput = z.infer<typeof goalSchema>;
+export type TrainingSessionInput = z.infer<typeof trainingSessionSchema>;
+export type AdmissionInput = z.infer<typeof admissionSchema>;

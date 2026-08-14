@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { decryptSession } from "@/lib/session";
 
-const PUBLIC_PATHS = ["/login", "/forgot-password", "/reset-password", "/contact"];
+const PUBLIC_PATHS = ["/login", "/forgot-password", "/reset-password", "/contact", "/apply"];
 
 const ROLE_PREFIX: Record<string, string> = {
   ADMIN: "/dashboard",
@@ -17,6 +17,8 @@ const SHARED_MODULE_PATHS = [
   "/performance",
   "/matches",
   "/rankings",
+  "/goals",
+  "/training",
   "/reports",
   "/scan",
 ];
@@ -29,6 +31,7 @@ const ADMIN_ONLY_MODULE_PATHS = [
   "/settings",
   "/users",
   "/audit-logs",
+  "/admissions",
 ];
 
 // Modules available to every authenticated role.

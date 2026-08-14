@@ -88,6 +88,31 @@ enum Dismissal {
   OTHER
 }
 
+enum GoalStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  ACHIEVED
+  CANCELLED
+}
+
+enum TrainingCategory {
+  BATTING
+  BOWLING
+  FIELDING
+  FITNESS
+  WICKETKEEPING
+  TACTICAL
+  MATCH_PRACTICE
+}
+
+enum AdmissionStatus {
+  NEW
+  REVIEW
+  APPROVED
+  REJECTED
+  CONVERTED
+}
+
 enum ExpenseCategory {
   EQUIPMENT
   GROUND
@@ -114,8 +139,14 @@ enum ActivityType {
   RECEIPT_GENERATED
   PERFORMANCE_ADDED
   PERFORMANCE_UPDATED
+  GOAL_ADDED
+  GOAL_UPDATED
   MATCH_ADDED
   MATCH_UPDATED
+  TRAINING_SESSION_CREATED
+  TRAINING_ATTENDANCE_RECORDED
+  ADMISSION_SUBMITTED
+  ADMISSION_REVIEWED
   EXPENSE_ADDED
   EXPENSE_UPDATED
   EXPENSE_DELETED
@@ -153,6 +184,8 @@ model User {
   batches          Batch[]
   performances     Performance[]
   matches          Match[]
+  goals            Goal[]
+  trainingSessions TrainingSession[]
   activities       Activity[]
   notifications    Notification[]
   resetTokens      PasswordResetToken[]
@@ -175,6 +208,8 @@ model Batch {
   capacity         Int       @default(0)
   isActive         Boolean   @default(true)
   students         Student[]
+  sessions         TrainingSession[]
+  admissions       Admission[]
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
@@ -220,6 +255,8 @@ model Student {
   fees         Fee[]
   performances Performance[]
   matchRecords MatchRecord[]
+  goals        Goal[]
+  trainingRecords TrainingSessionRecord[]
 
   @@index([batchId, status])
   @@index([coachId])
@@ -310,6 +347,108 @@ model Performance {
   updatedAt        DateTime @updatedAt
 
   @@index([studentId, date])
+}
+
+model Goal {
+  id          String     @id @default(cuid())
+  studentId   String
+  student     Student    @relation(fields: [studentId], references: [id])
+  coachId     String?
+  coach       User?      @relation(fields: [coachId], references: [id])
+  title       String
+  description String?
+  category    String?
+  baseline    String?
+  target      String?
+  progress    Int        @default(0)
+  status      GoalStatus @default(NOT_STARTED)
+  deadline    DateTime?  @db.Date
+  createdBy   String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  updates GoalUpdate[]
+
+  @@index([studentId, status])
+  @@index([coachId])
+  @@index([status])
+}
+
+model GoalUpdate {
+  id        String   @id @default(cuid())
+  goalId    String
+  goal      Goal     @relation(fields: [goalId], references: [id])
+  progress  Int
+  note      String?
+  createdBy String
+  createdAt DateTime @default(now())
+
+  @@index([goalId])
+}
+
+model TrainingSession {
+  id        String           @id @default(cuid())
+  date      DateTime         @db.Date
+  batchId   String?
+  batch     Batch?           @relation(fields: [batchId], references: [id])
+  coachId   String?
+  coach     User?            @relation(fields: [coachId], references: [id])
+  topic     String
+  category  TrainingCategory @default(BATTING)
+  startTime String?
+  endTime   String?
+  location  String?
+  notes     String?
+  createdBy String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  records TrainingSessionRecord[]
+
+  @@index([date])
+  @@index([batchId])
+  @@index([coachId])
+}
+
+model TrainingSessionRecord {
+  id         String          @id @default(cuid())
+  sessionId  String
+  session    TrainingSession @relation(fields: [sessionId], references: [id])
+  studentId  String
+  student    Student         @relation(fields: [studentId], references: [id])
+  present    Boolean         @default(true)
+  notes      String?
+  highlights String?
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  @@unique([sessionId, studentId])
+  @@index([studentId])
+}
+
+model Admission {
+  id               String          @id @default(cuid())
+  studentName      String
+  dob              DateTime        @db.Date
+  gender           Gender
+  guardianName     String
+  phone            String
+  email            String?
+  preferredBatchId String?
+  preferredBatch   Batch?          @relation(fields: [preferredBatchId], references: [id])
+  experience       String?
+  playingRole      String?
+  message          String?
+  status           AdmissionStatus @default(NEW)
+  reviewedBy       String?
+  reviewedAt       DateTime?
+  studentId        String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([preferredBatchId])
 }
 
 model Match {

@@ -5,10 +5,11 @@ import { cn } from "@/lib/utils";
 
 const NAV_LINKS = [
   { href: "/", label: "Home", key: "home" },
+  { href: "/apply", label: "Apply Now", key: "apply" },
   { href: "/contact", label: "Contact Us", key: "contact" },
 ] as const;
 
-export function LandingHeader({ active }: { active?: "home" | "contact" }) {
+export function LandingHeader({ active }: { active?: "home" | "apply" | "contact" }) {
   return (
     <header className="bg-navy text-white">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-4">

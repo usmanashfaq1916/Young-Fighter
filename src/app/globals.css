@@ -91,6 +91,9 @@ body {
   .btn-gold {
     @apply inline-flex items-center gap-2 rounded-xl bg-gradient-to-b from-gold-light to-gold px-4 py-2.5 text-sm font-semibold text-navy shadow-sm transition hover:brightness-105 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50;
   }
+  .btn-outline-light {
+    @apply inline-flex items-center gap-2 rounded-xl border border-white/30 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10 active:scale-[0.98];
+  }
   .input {
     @apply w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-sm text-foreground outline-none transition placeholder:text-muted/60 focus:border-primary focus:ring-2 focus:ring-primary/25;
   }

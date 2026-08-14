@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { GraduationCap, Bell, Star, MessageCircle } from "lucide-react";
+import { GraduationCap, Bell, Star, MessageCircle, Target, Dumbbell } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
 import { StatCard } from "@/components/ui/stat-card";
 import { PageHeader } from "@/components/ui/page-header";
 import { formatDate, formatMoney, formatMonth, calculateAge, waLink } from "@/lib/utils";
-import { feeStatusLabel, skillLabel } from "@/lib/constants";
+import { feeStatusLabel, skillLabel, goalStatusLabel, goalCategoryLabel, trainingCategoryLabel } from "@/lib/constants";
 import { generateQrDataUrl, studentQrContent } from "@/lib/qr";
 
 type ChildData = {
@@ -26,6 +26,21 @@ type ChildData = {
   attendance: { status: string; date: string }[];
   fees: { id: string; month: string; monthlyFee: number; discount: number; paidAmount: number; balance: number; status: string }[];
   performances: { id: string; date: string; overallRating: number; battingRating: number; bowlingRating: number; fieldingRating: number; fitnessRating: number; disciplineRating: number }[];
+  goals: {
+    id: string;
+    title: string;
+    category: string;
+    baseline: string | null;
+    target: string | null;
+    progress: number;
+    status: string;
+    deadline: string | null;
+  }[];
+  trainingRecords: {
+    id: string;
+    present: boolean;
+    session: { date: string; topic: string; category: string };
+  }[];
 };
 
 export function ParentPortal({
@@ -166,6 +181,72 @@ export function ParentPortal({
                       <Badge tone="blue">Fitness {lastPerf.fitnessRating}</Badge>
                       <Badge tone="blue">Disc {lastPerf.disciplineRating}</Badge>
                     </div>
+                  </div>
+                )}
+
+                {child.goals.length > 0 && (
+                  <div className="mt-4">
+                    <p className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-muted">
+                      <Target className="h-3.5 w-3.5 text-gold" /> Development Goals
+                    </p>
+                    <ul className="space-y-2">
+                      {child.goals.slice(0, 3).map((g) => (
+                        <li key={g.id} className="rounded-xl bg-surface-alt p-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-sm font-semibold">{g.title}</p>
+                            <Badge tone={g.status === "ACHIEVED" ? "green" : g.status === "IN_PROGRESS" ? "blue" : "gray"}>
+                              {goalStatusLabel[g.status] ?? g.status}
+                            </Badge>
+                          </div>
+                          <p className="mt-0.5 text-xs text-muted">
+                            {goalCategoryLabel[g.category] ?? g.category}
+                            {g.deadline ? ` · Due ${formatDate(g.deadline)}` : ""}
+                          </p>
+                          <div className="mt-2">
+                            <div className="mb-1 flex justify-between text-[10px]">
+                              <span className="font-semibold uppercase text-muted">Progress</span>
+                              <span className="font-bold">{g.progress}%</span>
+                            </div>
+                            <div className="h-1.5 overflow-hidden rounded-full bg-border">
+                              <div
+                                className="h-full rounded-full bg-gold"
+                                style={{ width: `${Math.min(100, Math.max(0, g.progress))}%` }}
+                              />
+                            </div>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {child.trainingRecords.length > 0 && (
+                  <div className="mt-4">
+                    <p className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-muted">
+                      <Dumbbell className="h-3.5 w-3.5 text-gold" /> Recent Training
+                    </p>
+                    <ul className="flex flex-wrap gap-1.5">
+                      {child.trainingRecords.slice(0, 10).map((t) => (
+                        <li
+                          key={t.id}
+                          title={`${t.session.topic} — ${formatDate(t.session.date)}`}
+                          className="flex h-8 w-8 items-center justify-center rounded-lg text-xs font-bold"
+                        >
+                          <span
+                            className={`flex h-8 w-8 items-center justify-center rounded-lg ${
+                              t.present ? "bg-success/15 text-success" : "bg-danger/15 text-danger"
+                            }`}
+                          >
+                            {t.present ? "P" : "A"}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="mt-1 text-[10px] text-muted">
+                      {child.trainingRecords.filter((t) => t.present).length}/
+                      {child.trainingRecords.length} of recent sessions attended (
+                      {trainingCategoryLabel[child.trainingRecords[0].session.category] ?? "Training"})
+                    </p>
                   </div>
                 )}
               </div>

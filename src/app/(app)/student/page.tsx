@@ -20,6 +20,33 @@ export default async function StudentPortalPage() {
             take: 10,
             include: { match: { select: { opponent: true, matchDate: true, result: true } } },
           },
+          goals: {
+            orderBy: { updatedAt: "desc" },
+            take: 10,
+            select: {
+              id: true,
+              title: true,
+              description: true,
+              category: true,
+              baseline: true,
+              target: true,
+              progress: true,
+              status: true,
+              deadline: true,
+            },
+          },
+          trainingRecords: {
+            orderBy: { session: { date: "desc" } },
+            take: 10,
+            select: {
+              id: true,
+              present: true,
+              notes: true,
+              session: {
+                select: { date: true, topic: true, category: true, location: true },
+              },
+            },
+          },
         },
       })
     : null;

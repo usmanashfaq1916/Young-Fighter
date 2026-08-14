@@ -335,13 +335,21 @@ export default async function HomePage() {
                 Visit the academy, call or email us to enroll, or sign in to your
                 existing portal.
               </p>
-              <Link
-                href="/login"
-                className="btn-gold mt-6"
-              >
-                Sign in to your portal
-                <ArrowRight className="h-4 w-4" />
-              </Link>
+              <div className="mt-6 flex flex-wrap gap-3">
+                <Link
+                  href="/apply"
+                  className="btn-gold"
+                >
+                  Apply Now
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+                <Link
+                  href="/login"
+                  className="btn-outline-light"
+                >
+                  Sign in to your portal
+                </Link>
+              </div>
             </div>
             <div className="space-y-5 bg-surface p-8 md:p-10">
               <div className="flex items-start gap-3">

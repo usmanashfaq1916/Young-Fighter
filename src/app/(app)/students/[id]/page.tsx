@@ -39,7 +39,7 @@ export default async function StudentProfilePage({
 
   const isAdmin = user.role === "ADMIN";
 
-  const [attendance, fees, performance, matches, upcomingDues, attendanceRecords] =
+  const [attendance, fees, performance, matches, upcomingDues, attendanceRecords, goals, training] =
     await Promise.all([
       db.attendance.groupBy({
         by: ["status"],
@@ -88,6 +88,38 @@ export default async function StudentProfilePage({
         where: { studentId: id },
         select: { date: true, status: true },
       }),
+      db.goal.findMany({
+        where: { studentId: id },
+        include: {
+          coach: { select: { id: true, fullName: true } },
+          updates: { select: { id: true, progress: true, note: true, createdAt: true }, orderBy: { createdAt: "desc" }, take: 5 },
+        },
+        orderBy: { updatedAt: "desc" },
+        take: 10,
+      }),
+      db.trainingSessionRecord.findMany({
+        where: { studentId: id },
+        orderBy: { session: { date: "desc" } },
+        take: 12,
+        select: {
+          id: true,
+          present: true,
+          notes: true,
+          highlights: true,
+          session: {
+            select: {
+              id: true,
+              date: true,
+              topic: true,
+              category: true,
+              location: true,
+              startTime: true,
+              endTime: true,
+              coach: { select: { id: true, fullName: true } },
+            },
+          },
+        },
+      }),
     ]);
 
   type MonthCounts = {
@@ -135,6 +167,8 @@ export default async function StudentProfilePage({
       performance={JSON.parse(JSON.stringify(performance))}
       matches={JSON.parse(JSON.stringify(matches))}
       upcomingDues={JSON.parse(JSON.stringify(upcomingDues))}
+      goals={JSON.parse(JSON.stringify(goals))}
+      training={JSON.parse(JSON.stringify(training))}
       role={user.role}
       initialTab={tab}
     />

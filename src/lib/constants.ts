@@ -39,6 +39,31 @@ export const DISMISSALS = [
   "OTHER",
 ] as const;
 
+export const GOAL_STATUSES = ["NOT_STARTED", "IN_PROGRESS", "ACHIEVED", "CANCELLED"] as const;
+
+export const TRAINING_CATEGORIES = [
+  "BATTING",
+  "BOWLING",
+  "FIELDING",
+  "FITNESS",
+  "WICKETKEEPING",
+  "TACTICAL",
+  "MATCH_PRACTICE",
+] as const;
+
+export const ADMISSION_STATUSES = ["NEW", "REVIEW", "APPROVED", "REJECTED", "CONVERTED"] as const;
+
+export const GOAL_CATEGORIES = [
+  "BATTING",
+  "BOWLING",
+  "FIELDING",
+  "FITNESS",
+  "WICKETKEEPING",
+  "MENTAL",
+  "TECHNICAL",
+  "OTHER",
+] as const;
+
 export const EXPENSE_CATEGORIES = [
   "EQUIPMENT",
   "GROUND",
@@ -125,8 +150,14 @@ export const ACTIVITY_LABELS: Record<string, string> = {
   RECEIPT_GENERATED: "Receipt generated",
   PERFORMANCE_ADDED: "Performance added",
   PERFORMANCE_UPDATED: "Performance updated",
+  GOAL_ADDED: "Development goal added",
+  GOAL_UPDATED: "Development goal updated",
   MATCH_ADDED: "Match added",
   MATCH_UPDATED: "Match updated",
+  TRAINING_SESSION_CREATED: "Training session created",
+  TRAINING_ATTENDANCE_RECORDED: "Training attendance recorded",
+  ADMISSION_SUBMITTED: "Admission application submitted",
+  ADMISSION_REVIEWED: "Admission application reviewed",
   EXPENSE_ADDED: "Expense added",
   EXPENSE_UPDATED: "Expense updated",
   EXPENSE_DELETED: "Expense deleted",
@@ -226,4 +257,40 @@ export const expenseCategoryLabel: Record<string, string> = {
 export const studentStatusLabel: Record<string, string> = {
   ACTIVE: "Active",
   INACTIVE: "Inactive",
+};
+
+export const goalStatusLabel: Record<string, string> = {
+  NOT_STARTED: "Not Started",
+  IN_PROGRESS: "In Progress",
+  ACHIEVED: "Achieved",
+  CANCELLED: "Cancelled",
+};
+
+export const goalCategoryLabel: Record<string, string> = {
+  BATTING: "Batting",
+  BOWLING: "Bowling",
+  FIELDING: "Fielding",
+  FITNESS: "Fitness",
+  WICKETKEEPING: "Wicketkeeping",
+  MENTAL: "Mental / Discipline",
+  TECHNICAL: "Technical",
+  OTHER: "Other",
+};
+
+export const trainingCategoryLabel: Record<string, string> = {
+  BATTING: "Batting",
+  BOWLING: "Bowling",
+  FIELDING: "Fielding",
+  FITNESS: "Fitness",
+  WICKETKEEPING: "Wicketkeeping",
+  TACTICAL: "Tactical",
+  MATCH_PRACTICE: "Match Practice",
+};
+
+export const admissionStatusLabel: Record<string, string> = {
+  NEW: "New",
+  REVIEW: "In Review",
+  APPROVED: "Approved",
+  REJECTED: "Rejected",
+  CONVERTED: "Converted",
 };
