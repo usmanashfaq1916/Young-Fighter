@@ -29,7 +29,9 @@ type PerfRow = {
   fitnessRating: number;
   disciplineRating: number;
   overallRating: number;
+  subSkills: Record<string, Record<string, number>> | null;
   remarks: string | null;
+  previousRating: number | null;
   student: {
     id: string;
     studentId: string;
@@ -47,6 +49,7 @@ type FormState = {
   fieldingRating: number;
   fitnessRating: number;
   disciplineRating: number;
+  subSkills: Record<string, Record<string, number>>;
   remarks: string;
 };
 
@@ -58,7 +61,26 @@ const defaultForm: FormState = {
   fieldingRating: 5,
   fitnessRating: 5,
   disciplineRating: 5,
+  subSkills: {},
   remarks: "",
+};
+
+const SUB_SKILL_KEYS: { key: string; label: string }[] = [
+  { key: "batting", label: "Batting" },
+  { key: "bowling", label: "Bowling" },
+  { key: "fielding", label: "Fielding" },
+  { key: "fitness", label: "Fitness" },
+  { key: "discipline", label: "Discipline" },
+];
+
+const subSkillAverage = (s: Record<string, Record<string, number>> | null): number | null => {
+  if (!s) return null;
+  const vals: number[] = [];
+  for (const group of Object.values(s)) {
+    for (const v of Object.values(group)) vals.push(v);
+  }
+  if (vals.length === 0) return null;
+  return Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10;
 };
 
 function RatingInput({
@@ -168,6 +190,7 @@ export function PerformanceModule() {
       fieldingRating: r.fieldingRating,
       fitnessRating: r.fitnessRating,
       disciplineRating: r.disciplineRating,
+      subSkills: r.subSkills ?? {},
       remarks: r.remarks ?? "",
     });
     setShowForm(true);
@@ -175,9 +198,18 @@ export function PerformanceModule() {
 
   const submit = () => {
     startTransition(async () => {
+      const cleanSub: Record<string, Record<string, number>> = {};
+      for (const [key, group] of Object.entries(form.subSkills)) {
+        const clean: Record<string, number> = {};
+        for (const [k, v] of Object.entries(group)) {
+          if (v > 0) clean[k] = v;
+        }
+        if (Object.keys(clean).length > 0) cleanSub[key] = clean;
+      }
+      const payload = { ...form, subSkills: Object.keys(cleanSub).length > 0 ? cleanSub : null };
       const res = editId
-        ? await updatePerformanceAction(editId, form)
-        : await addPerformanceAction(form);
+        ? await updatePerformanceAction(editId, payload)
+        : await addPerformanceAction(payload);
       if (res.ok) {
         toast(editId ? "Performance updated" : "Performance recorded", "success");
         setShowForm(false);
@@ -255,9 +287,31 @@ export function PerformanceModule() {
                     <td className="hidden px-4 py-3 lg:table-cell">{r.fitnessRating}</td>
                     <td className="hidden px-4 py-3 lg:table-cell">{r.disciplineRating}</td>
                     <td className="px-4 py-3">
-                      <Badge tone={r.overallRating >= 7 ? "green" : r.overallRating >= 4 ? "gold" : "red"}>
-                        {r.overallRating}/10
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge tone={r.overallRating >= 7 ? "green" : r.overallRating >= 4 ? "gold" : "red"}>
+                          {r.overallRating}/10
+                        </Badge>
+                        {r.previousRating != null && (
+                          <span
+                            className={
+                              r.overallRating > r.previousRating
+                                ? "text-xs font-bold text-success"
+                                : r.overallRating < r.previousRating
+                                  ? "text-xs font-bold text-danger"
+                                  : "text-xs text-muted"
+                            }
+                          >
+                            {r.overallRating > r.previousRating
+                              ? `▲${(r.overallRating - r.previousRating).toFixed(1)}`
+                              : r.overallRating < r.previousRating
+                                ? `▼${(r.previousRating - r.overallRating).toFixed(1)}`
+                                : "—"}
+                          </span>
+                        )}
+                        {subSkillAverage(r.subSkills) != null && (
+                          <Badge tone="blue">Sub {subSkillAverage(r.subSkills)}</Badge>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
@@ -403,6 +457,74 @@ export function PerformanceModule() {
               placeholder="Optional comments for the student"
             />
           </label>
+
+          <details className="rounded-xl border border-border">
+            <summary className="cursor-pointer px-4 py-3 text-xs font-bold uppercase tracking-wide text-muted">
+              Sub-skills (optional)
+            </summary>
+            <div className="space-y-4 px-4 pb-4">
+              <p className="text-xs text-muted">
+                Refine each rating with technique and consistency scores (1–10). Leave blank to skip.
+              </p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {SUB_SKILL_KEYS.map((g) => (
+                  <div key={g.key} className="rounded-xl bg-surface-alt p-3">
+                    <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted">
+                      {g.label}
+                    </p>
+                    <div className="flex gap-2">
+                      <label className="flex flex-col gap-1">
+                        <span className="text-[10px] uppercase text-muted">Technique</span>
+                        <input
+                          type="number"
+                          min={1}
+                          max={10}
+                          className="input h-8 w-16 px-2 text-sm"
+                          value={form.subSkills[g.key]?.technique ?? ""}
+                          placeholder="—"
+                          onChange={(e) =>
+                            setForm((f) => ({
+                              ...f,
+                              subSkills: {
+                                ...f.subSkills,
+                                [g.key]: {
+                                  ...f.subSkills[g.key],
+                                  technique: e.target.value ? Number(e.target.value) : 0,
+                                },
+                              },
+                            }))
+                          }
+                        />
+                      </label>
+                      <label className="flex flex-col gap-1">
+                        <span className="text-[10px] uppercase text-muted">Consistency</span>
+                        <input
+                          type="number"
+                          min={1}
+                          max={10}
+                          className="input h-8 w-16 px-2 text-sm"
+                          value={form.subSkills[g.key]?.consistency ?? ""}
+                          placeholder="—"
+                          onChange={(e) =>
+                            setForm((f) => ({
+                              ...f,
+                              subSkills: {
+                                ...f.subSkills,
+                                [g.key]: {
+                                  ...f.subSkills[g.key],
+                                  consistency: e.target.value ? Number(e.target.value) : 0,
+                                },
+                              },
+                            }))
+                          }
+                        />
+                      </label>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </details>
 
           <div className="flex justify-end gap-2">
             <Button variant="secondary" onClick={() => setShowForm(false)}>

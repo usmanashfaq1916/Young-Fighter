@@ -1,9 +1,11 @@
 import { z } from "zod";
 import {
   ATTENDANCE_STATUSES,
+  DISMISSALS,
   EXPENSE_CATEGORIES,
   GENDERS,
   MATCH_RESULTS,
+  MATCH_TYPES,
   PAYMENT_METHODS,
   SKILL_LEVELS,
   STUDENT_STATUSES,
@@ -145,6 +147,11 @@ export const matchSchema = z.object({
   matchDate: z.coerce.date({ error: "Please select a valid match date." }),
   opponent: z.string().min(1, { error: "Please enter the opponent team." }).max(100),
   venue: z.string().max(200).optional().or(z.literal("")),
+  matchType: z.enum(MATCH_TYPES).optional().nullable(),
+  competition: z.string().max(200).optional().or(z.literal("")),
+  tossWon: z.boolean().optional().nullable(),
+  overs: z.coerce.number().int().min(0).max(100).optional().nullable(),
+  notes: z.string().max(1000).optional().or(z.literal("")),
   result: z.enum(MATCH_RESULTS).optional().nullable(),
 });
 
@@ -153,10 +160,20 @@ export const matchRecordSchema = z.object({
   entries: z.array(
     z.object({
       studentId: z.string().min(1),
+      selected: z.boolean().optional(),
+      battingPosition: z.coerce.number().int().min(0).max(20).optional().nullable(),
       runs: z.coerce.number().int().min(0).max(500),
       ballsFaced: z.coerce.number().int().min(0).max(1000).optional().nullable(),
+      fours: z.coerce.number().int().min(0).max(100).optional(),
+      sixes: z.coerce.number().int().min(0).max(100).optional(),
+      dismissal: z.enum(DISMISSALS).optional().nullable(),
       wickets: z.coerce.number().int().min(0).max(20),
+      oversBowled: z.coerce.number().min(0).max(100).optional().nullable(),
+      maidens: z.coerce.number().int().min(0).max(100).optional(),
+      runsConceded: z.coerce.number().int().min(0).max(1000).optional().nullable(),
       catches: z.coerce.number().int().min(0).max(20),
+      runOuts: z.coerce.number().int().min(0).max(20).optional(),
+      stumpings: z.coerce.number().int().min(0).max(20).optional(),
       strikeRate: z.coerce.number().min(0).max(1000).optional().nullable(),
       economy: z.coerce.number().min(0).max(100).optional().nullable(),
       manOfTheMatch: z.boolean().optional(),

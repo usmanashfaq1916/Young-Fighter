@@ -19,6 +19,7 @@ import {
   ScanLine,
   UserCog,
   History,
+  Medal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { signOut } from "@/app/actions/auth";
@@ -40,6 +41,7 @@ export const navItems: NavItem[] = [
   { href: "/fees", label: "Fees", icon: Wallet },
   { href: "/performance", label: "Performance", icon: TrendingUp },
   { href: "/matches", label: "Matches", icon: Trophy },
+  { href: "/rankings", label: "Rankings", icon: Medal },
   { href: "/expenses", label: "Expenses", icon: Receipt },
   { href: "/reports", label: "Reports", icon: FileBarChart },
   { href: "/scan", label: "Scan QR", icon: ScanLine },

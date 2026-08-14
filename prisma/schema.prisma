@@ -69,6 +69,25 @@ enum MatchResult {
   TIE
 }
 
+enum MatchType {
+  FRIENDLY
+  TOURNAMENT
+  LEAGUE
+  PRACTICE
+  OTHER
+}
+
+enum Dismissal {
+  BOWLED
+  CAUGHT
+  LBW
+  RUN_OUT
+  STUMPED
+  NOT_OUT
+  RETIRED
+  OTHER
+}
+
 enum ExpenseCategory {
   EQUIPMENT
   GROUND
@@ -283,6 +302,7 @@ model Performance {
   fitnessRating    Int
   disciplineRating Int
   overallRating    Float
+  subSkills        Json?
   remarks          String?
   coachId          String?
   coach            User?    @relation(fields: [coachId], references: [id])
@@ -293,36 +313,51 @@ model Performance {
 }
 
 model Match {
-  id        String       @id @default(cuid())
-  matchDate DateTime     @db.Date
-  opponent  String
-  venue     String?
-  result    MatchResult?
-  coachId   String?
-  coach     User?        @relation(fields: [coachId], references: [id])
-  records   MatchRecord[]
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
-  createdBy String?
+  id          String       @id @default(cuid())
+  matchDate   DateTime     @db.Date
+  opponent    String
+  venue       String?
+  matchType   MatchType?
+  competition String?
+  tossWon     Boolean?
+  overs       Int?
+  notes       String?
+  result      MatchResult?
+  coachId     String?
+  coach       User?        @relation(fields: [coachId], references: [id])
+  records     MatchRecord[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  createdBy   String?
 
   @@index([matchDate])
 }
 
 model MatchRecord {
-  id           String  @id @default(cuid())
-  matchId      String
-  match        Match   @relation(fields: [matchId], references: [id])
-  studentId    String
-  student      Student @relation(fields: [studentId], references: [id])
-  runs         Int     @default(0)
-  ballsFaced   Int?
-  wickets      Int     @default(0)
-  catches      Int     @default(0)
-  strikeRate   Float?
-  economy      Float?
-  manOfTheMatch Boolean @default(false)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id              String     @id @default(cuid())
+  matchId         String
+  match           Match      @relation(fields: [matchId], references: [id])
+  studentId       String
+  student         Student    @relation(fields: [studentId], references: [id])
+  selected        Boolean    @default(true)
+  battingPosition Int?
+  runs            Int        @default(0)
+  ballsFaced      Int?
+  fours           Int        @default(0)
+  sixes           Int        @default(0)
+  dismissal       Dismissal?
+  wickets         Int        @default(0)
+  oversBowled     Float?
+  maidens         Int        @default(0)
+  runsConceded    Int?
+  catches         Int        @default(0)
+  runOuts         Int        @default(0)
+  stumpings       Int        @default(0)
+  strikeRate      Float?
+  economy         Float?
+  manOfTheMatch   Boolean    @default(false)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
 
   @@unique([matchId, studentId])
   @@index([studentId])

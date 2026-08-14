@@ -48,6 +48,7 @@ export function AppShell({
               "/attendance",
               "/performance",
               "/matches",
+              "/rankings",
               "/scan",
               "/reports",
               "/notifications",

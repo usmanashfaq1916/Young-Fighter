@@ -11,16 +11,26 @@ import { Modal } from "@/components/ui/modal";
 import { useDebouncedValue } from "@/hooks/use-debounce";
 import { SearchBar } from "@/components/ui/search-bar";
 import { formatDate } from "@/lib/utils";
-import { matchResultLabel, MATCH_RESULTS } from "@/lib/constants";
+import { matchResultLabel, MATCH_RESULTS, matchTypeLabel, MATCH_TYPES, dismissalLabel, DISMISSALS } from "@/lib/constants";
 import { saveMatchAction } from "@/app/actions/performance";
 import { useToast } from "@/components/providers/toast-provider";
 
 type MatchRecord = {
   id: string;
+  selected: boolean;
+  battingPosition: number | null;
   runs: number;
   ballsFaced: number | null;
+  fours: number;
+  sixes: number;
+  dismissal: string | null;
   wickets: number;
+  oversBowled: number | null;
+  maidens: number;
+  runsConceded: number | null;
   catches: number;
+  runOuts: number;
+  stumpings: number;
   strikeRate: number | null;
   economy: number | null;
   manOfTheMatch: boolean;
@@ -32,6 +42,11 @@ type MatchRow = {
   matchDate: string;
   opponent: string;
   venue: string | null;
+  matchType: string | null;
+  competition: string | null;
+  tossWon: boolean | null;
+  overs: number | null;
+  notes: string | null;
   result: string | null;
   records: MatchRecord[];
 };
@@ -45,10 +60,20 @@ type StudentOption = {
 
 type RowForm = {
   studentId: string;
+  selected: boolean;
+  battingPosition: number | null;
   runs: number;
   ballsFaced: number | null;
+  fours: number;
+  sixes: number;
+  dismissal: string | null;
   wickets: number;
+  oversBowled: number | null;
+  maidens: number;
+  runsConceded: number | null;
   catches: number;
+  runOuts: number;
+  stumpings: number;
   manOfTheMatch: boolean;
 };
 
@@ -65,6 +90,11 @@ export function MatchesModule() {
     matchDate: new Date().toISOString().slice(0, 10),
     opponent: "",
     venue: "",
+    matchType: "",
+    competition: "",
+    tossWon: "",
+    overs: "",
+    notes: "",
     result: "",
   });
   const [rows, setRows] = useState<RowForm[]>([]);
@@ -107,6 +137,11 @@ export function MatchesModule() {
       matchDate: new Date().toISOString().slice(0, 10),
       opponent: "",
       venue: "",
+      matchType: "",
+      competition: "",
+      tossWon: "",
+      overs: "",
+      notes: "",
       result: "",
     });
     setRows([]);
@@ -121,15 +156,30 @@ export function MatchesModule() {
       matchDate: m.matchDate.slice(0, 10),
       opponent: m.opponent,
       venue: m.venue ?? "",
+      matchType: m.matchType ?? "",
+      competition: m.competition ?? "",
+      tossWon: m.tossWon == null ? "" : String(m.tossWon),
+      overs: m.overs == null ? "" : String(m.overs),
+      notes: m.notes ?? "",
       result: m.result ?? "",
     });
     setRows(
       m.records.map((r) => ({
         studentId: r.student.id,
+        selected: r.selected,
+        battingPosition: r.battingPosition,
         runs: r.runs,
         ballsFaced: r.ballsFaced,
+        fours: r.fours,
+        sixes: r.sixes,
+        dismissal: r.dismissal,
         wickets: r.wickets,
+        oversBowled: r.oversBowled,
+        maidens: r.maidens,
+        runsConceded: r.runsConceded,
         catches: r.catches,
+        runOuts: r.runOuts,
+        stumpings: r.stumpings,
         manOfTheMatch: r.manOfTheMatch,
       }))
     );
@@ -138,7 +188,27 @@ export function MatchesModule() {
 
   const addRow = (s: StudentOption) => {
     if (rows.some((r) => r.studentId === s.id)) return;
-    setRows((prev) => [...prev, { studentId: s.id, runs: 0, ballsFaced: null, wickets: 0, catches: 0, manOfTheMatch: false }]);
+    setRows((prev) => [
+      ...prev,
+      {
+        studentId: s.id,
+        selected: true,
+        battingPosition: null,
+        runs: 0,
+        ballsFaced: null,
+        fours: 0,
+        sixes: 0,
+        dismissal: null,
+        wickets: 0,
+        oversBowled: null,
+        maidens: 0,
+        runsConceded: null,
+        catches: 0,
+        runOuts: 0,
+        stumpings: 0,
+        manOfTheMatch: false,
+      },
+    ]);
     setSearchResults([]);
     setQ("");
   };
@@ -154,6 +224,11 @@ export function MatchesModule() {
         matchDate: form.matchDate,
         opponent: form.opponent,
         venue: form.venue,
+        matchType: form.matchType || null,
+        competition: form.competition,
+        tossWon: form.tossWon === "" ? null : form.tossWon === "true",
+        overs: form.overs ? Number(form.overs) : null,
+        notes: form.notes,
         result: form.result || null,
         records: rows,
       });
@@ -228,6 +303,20 @@ export function MatchesModule() {
                     {m.venue && <span className="ml-2 text-xs font-normal text-muted">@{m.venue}</span>}
                   </p>
                   <p className="text-xs text-muted">{formatDate(m.matchDate)}</p>
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    {m.matchType && (
+                      <Badge tone="gray">{matchTypeLabel[m.matchType]}</Badge>
+                    )}
+                    {m.competition && (
+                      <Badge tone="navy">{m.competition}</Badge>
+                    )}
+                    {m.tossWon != null && (
+                      <Badge tone={m.tossWon ? "green" : "red"}>
+                        Toss {m.tossWon ? "won" : "lost"}
+                      </Badge>
+                    )}
+                    {m.overs != null && <Badge tone="gray">{m.overs} overs</Badge>}
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   {m.result && (
@@ -252,6 +341,11 @@ export function MatchesModule() {
                   </button>
                 </div>
               </div>
+              {m.notes && (
+                <p className="border-b border-border px-4 py-2 text-xs text-muted">
+                  {m.notes}
+                </p>
+              )}
               {m.records.length === 0 ? (
                 <p className="px-4 py-4 text-sm text-muted">No scorecard recorded.</p>
               ) : (
@@ -262,24 +356,47 @@ export function MatchesModule() {
                         <th className="px-4 py-2 font-semibold">Player</th>
                         <th className="px-4 py-2 font-semibold">Runs</th>
                         <th className="hidden px-4 py-2 font-semibold sm:table-cell">Balls</th>
+                        <th className="hidden px-4 py-2 font-semibold md:table-cell">4s/6s</th>
+                        <th className="px-4 py-2 font-semibold">Out</th>
                         <th className="px-4 py-2 font-semibold">Wkts</th>
+                        <th className="hidden px-4 py-2 font-semibold sm:table-cell">O-M-R</th>
                         <th className="hidden px-4 py-2 font-semibold sm:table-cell">Ct</th>
+                        <th className="hidden px-4 py-2 font-semibold md:table-cell">RO/St</th>
                         <th className="px-4 py-2 font-semibold">MOTM</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
                       {m.records.map((r) => (
-                        <tr key={r.id}>
+                        <tr key={r.id} className={!r.selected ? "opacity-50" : ""}>
                           <td className="px-4 py-2">
                             <div className="flex items-center gap-2">
                               <Avatar src={r.student.photoUrl} name={r.student.fullName} size={26} />
                               <span className="font-medium">{r.student.fullName}</span>
+                              {!r.selected && (
+                                <span className="text-[10px] font-bold uppercase tracking-wide text-muted">
+                                  Sub
+                                </span>
+                              )}
                             </div>
                           </td>
                           <td className="px-4 py-2 font-semibold">{r.runs}</td>
                           <td className="hidden px-4 py-2 text-muted sm:table-cell">{r.ballsFaced ?? "—"}</td>
+                          <td className="hidden px-4 py-2 text-muted md:table-cell">
+                            {r.fours > 0 || r.sixes > 0 ? `${r.fours}/${r.sixes}` : "—"}
+                          </td>
+                          <td className="px-4 py-2 text-muted">
+                            {r.dismissal ? dismissalLabel[r.dismissal] : "—"}
+                          </td>
                           <td className="px-4 py-2">{r.wickets}</td>
+                          <td className="hidden px-4 py-2 text-muted sm:table-cell">
+                            {r.oversBowled != null
+                              ? `${r.oversBowled}-${r.maidens}-${r.runsConceded ?? 0}`
+                              : "—"}
+                          </td>
                           <td className="hidden px-4 py-2 text-muted sm:table-cell">{r.catches}</td>
+                          <td className="hidden px-4 py-2 text-muted md:table-cell">
+                            {r.runOuts > 0 || r.stumpings > 0 ? `${r.runOuts}/${r.stumpings}` : "—"}
+                          </td>
                           <td className="px-4 py-2">
                             {r.manOfTheMatch ? (
                               <Badge tone="gold">MOTM</Badge>
@@ -352,6 +469,62 @@ export function MatchesModule() {
                 ))}
               </select>
             </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted">Match type</span>
+              <select
+                className="input"
+                value={form.matchType}
+                onChange={(e) => setForm({ ...form, matchType: e.target.value })}
+              >
+                <option value="">Not set</option>
+                {MATCH_TYPES.map((t) => (
+                  <option key={t} value={t}>
+                    {matchTypeLabel[t]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted">Competition</span>
+              <input
+                className="input"
+                value={form.competition}
+                onChange={(e) => setForm({ ...form, competition: e.target.value })}
+                placeholder="e.g. Lahore Junior League"
+              />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted">Toss won</span>
+              <select
+                className="input"
+                value={form.tossWon}
+                onChange={(e) => setForm({ ...form, tossWon: e.target.value })}
+              >
+                <option value="">Not recorded</option>
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+              </select>
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted">Overs</span>
+              <input
+                type="number"
+                min={0}
+                className="input"
+                value={form.overs}
+                onChange={(e) => setForm({ ...form, overs: e.target.value })}
+                placeholder="e.g. 20"
+              />
+            </label>
+            <label className="flex flex-col gap-1.5 sm:col-span-2">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted">Notes</span>
+              <textarea
+                className="input min-h-16"
+                value={form.notes}
+                onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                placeholder="Match summary, highlights…"
+              />
+            </label>
           </div>
 
           <div>
@@ -387,19 +560,51 @@ export function MatchesModule() {
                   <thead className="border-b border-border bg-surface-alt text-xs uppercase tracking-wide text-muted">
                     <tr>
                       <th className="px-3 py-2 font-semibold">Player</th>
+                      <th className="px-3 py-2 font-semibold">XI</th>
+                      <th className="px-3 py-2 font-semibold">Pos</th>
                       <th className="px-3 py-2 font-semibold">Runs</th>
                       <th className="px-3 py-2 font-semibold">Balls</th>
+                      <th className="px-3 py-2 font-semibold">4s</th>
+                      <th className="px-3 py-2 font-semibold">6s</th>
+                      <th className="px-3 py-2 font-semibold">Dismissal</th>
                       <th className="px-3 py-2 font-semibold">Wkts</th>
+                      <th className="px-3 py-2 font-semibold">O</th>
+                      <th className="px-3 py-2 font-semibold">M</th>
+                      <th className="px-3 py-2 font-semibold">R</th>
                       <th className="px-3 py-2 font-semibold">Ct</th>
+                      <th className="px-3 py-2 font-semibold">RO</th>
+                      <th className="px-3 py-2 font-semibold">St</th>
                       <th className="px-3 py-2 font-semibold">MOTM</th>
                       <th className="px-3 py-2" />
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
                     {rows.map((r, i) => (
-                      <tr key={r.studentId}>
+                      <tr key={r.studentId} className={!r.selected ? "opacity-50" : ""}>
                         <td className="px-3 py-2 font-medium">
                           {data?.students.find((s) => s.id === r.studentId)?.fullName ?? r.studentId}
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4 accent-primary"
+                            checked={r.selected}
+                            onChange={(e) => updateRow(i, { selected: e.target.checked })}
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="number"
+                            min={0}
+                            className="input h-8 w-10 px-2 text-sm"
+                            value={r.battingPosition ?? ""}
+                            placeholder="—"
+                            onChange={(e) =>
+                              updateRow(i, {
+                                battingPosition: e.target.value ? Number(e.target.value) : null,
+                              })
+                            }
+                          />
                         </td>
                         <td className="px-3 py-2">
                           <input
@@ -428,7 +633,39 @@ export function MatchesModule() {
                           <input
                             type="number"
                             min={0}
-                            className="input h-8 w-16 px-2 text-sm"
+                            className="input h-8 w-12 px-2 text-sm"
+                            value={r.fours}
+                            onChange={(e) => updateRow(i, { fours: Number(e.target.value) })}
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="number"
+                            min={0}
+                            className="input h-8 w-12 px-2 text-sm"
+                            value={r.sixes}
+                            onChange={(e) => updateRow(i, { sixes: Number(e.target.value) })}
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <select
+                            className="input h-8 w-28 px-2 text-sm"
+                            value={r.dismissal ?? ""}
+                            onChange={(e) => updateRow(i, { dismissal: e.target.value || null })}
+                          >
+                            <option value="">—</option>
+                            {DISMISSALS.map((d) => (
+                              <option key={d} value={d}>
+                                {dismissalLabel[d]}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="number"
+                            min={0}
+                            className="input h-8 w-12 px-2 text-sm"
                             value={r.wickets}
                             onChange={(e) => updateRow(i, { wickets: Number(e.target.value) })}
                           />
@@ -437,9 +674,65 @@ export function MatchesModule() {
                           <input
                             type="number"
                             min={0}
-                            className="input h-8 w-16 px-2 text-sm"
+                            step={0.1}
+                            className="input h-8 w-14 px-2 text-sm"
+                            value={r.oversBowled ?? ""}
+                            placeholder="—"
+                            onChange={(e) =>
+                              updateRow(i, {
+                                oversBowled: e.target.value ? Number(e.target.value) : null,
+                              })
+                            }
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="number"
+                            min={0}
+                            className="input h-8 w-12 px-2 text-sm"
+                            value={r.maidens}
+                            onChange={(e) => updateRow(i, { maidens: Number(e.target.value) })}
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="number"
+                            min={0}
+                            className="input h-8 w-14 px-2 text-sm"
+                            value={r.runsConceded ?? ""}
+                            placeholder="—"
+                            onChange={(e) =>
+                              updateRow(i, {
+                                runsConceded: e.target.value ? Number(e.target.value) : null,
+                              })
+                            }
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="number"
+                            min={0}
+                            className="input h-8 w-12 px-2 text-sm"
                             value={r.catches}
                             onChange={(e) => updateRow(i, { catches: Number(e.target.value) })}
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="number"
+                            min={0}
+                            className="input h-8 w-12 px-2 text-sm"
+                            value={r.runOuts}
+                            onChange={(e) => updateRow(i, { runOuts: Number(e.target.value) })}
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="number"
+                            min={0}
+                            className="input h-8 w-12 px-2 text-sm"
+                            value={r.stumpings}
+                            onChange={(e) => updateRow(i, { stumpings: Number(e.target.value) })}
                           />
                         </td>
                         <td className="px-3 py-2">

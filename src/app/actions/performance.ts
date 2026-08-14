@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
+import { Prisma } from "@/generated/prisma/client";
 import { requireRole } from "@/lib/auth";
 import { assertStudentAccess, studentIdsInScope } from "@/lib/rbac";
 import { performanceSchema, matchSchema, matchRecordSchema } from "@/lib/validation/schemas";
@@ -13,6 +14,14 @@ export type PerformanceActionResult =
   | { ok: true; id?: string }
   | { ok: false; error: string; fieldErrors?: Record<string, string[]> };
 
+export type SubSkills = {
+  batting?: { technique?: number; consistency?: number };
+  bowling?: { technique?: number; consistency?: number };
+  fielding?: { technique?: number; consistency?: number };
+  fitness?: { technique?: number; consistency?: number };
+  discipline?: { technique?: number; consistency?: number };
+};
+
 export async function addPerformanceAction(input: {
   studentId: string;
   date: string;
@@ -21,6 +30,7 @@ export async function addPerformanceAction(input: {
   fieldingRating: number;
   fitnessRating: number;
   disciplineRating: number;
+  subSkills?: SubSkills | null;
   remarks?: string;
 }) {
   const user = await requireRole("ADMIN", "COACH");
@@ -66,6 +76,7 @@ export async function addPerformanceAction(input: {
         fitnessRating: data.fitnessRating,
         disciplineRating: data.disciplineRating,
         overallRating,
+        subSkills: input.subSkills ? (input.subSkills as object) : undefined,
         remarks: data.remarks || null,
         coachId: user.role === "COACH" ? user.id : null,
       },
@@ -101,6 +112,7 @@ export async function updatePerformanceAction(
     fieldingRating: number;
     fitnessRating: number;
     disciplineRating: number;
+    subSkills?: SubSkills | null;
     remarks?: string;
   }
 ) {
@@ -153,6 +165,7 @@ export async function updatePerformanceAction(
       fitnessRating: data.fitnessRating,
       disciplineRating: data.disciplineRating,
       overallRating,
+      subSkills: input.subSkills ? (input.subSkills as object) : Prisma.JsonNull,
       remarks: data.remarks || null,
     },
   });
@@ -193,13 +206,28 @@ export async function saveMatchAction(input: {
   matchDate: string;
   opponent: string;
   venue?: string;
+  matchType?: string | null;
+  competition?: string;
+  tossWon?: boolean | null;
+  overs?: number | null;
+  notes?: string;
   result?: string | null;
   records: {
     studentId: string;
+    selected?: boolean;
+    battingPosition?: number | null;
     runs: number;
     ballsFaced?: number | null;
+    fours?: number;
+    sixes?: number;
+    dismissal?: string | null;
     wickets: number;
+    oversBowled?: number | null;
+    maidens?: number;
+    runsConceded?: number | null;
     catches: number;
+    runOuts?: number;
+    stumpings?: number;
     strikeRate?: number | null;
     economy?: number | null;
     manOfTheMatch?: boolean;
@@ -211,6 +239,9 @@ export async function saveMatchAction(input: {
     ...input,
     matchDate: input.matchDate ? new Date(input.matchDate) : undefined,
     result: input.result || null,
+    matchType: input.matchType || null,
+    tossWon: input.tossWon ?? null,
+    overs: input.overs ?? null,
   });
   if (!parsedMatch.success) {
     return { ok: false as const, error: "Invalid match data.", fieldErrors: parsedMatch.error.flatten().fieldErrors };
@@ -247,6 +278,11 @@ export async function saveMatchAction(input: {
           matchDate: dateOnlyUTC(data.matchDate),
           opponent: data.opponent,
           venue: data.venue || null,
+          matchType: (data.matchType as never) ?? null,
+          competition: data.competition || null,
+          tossWon: data.tossWon ?? null,
+          overs: data.overs ?? null,
+          notes: data.notes || null,
           result: (data.result as never) ?? null,
         },
       });
@@ -256,6 +292,11 @@ export async function saveMatchAction(input: {
           matchDate: dateOnlyUTC(data.matchDate),
           opponent: data.opponent,
           venue: data.venue || null,
+          matchType: (data.matchType as never) ?? null,
+          competition: data.competition || null,
+          tossWon: data.tossWon ?? null,
+          overs: data.overs ?? null,
+          notes: data.notes || null,
           result: (data.result as never) ?? null,
           coachId: user.role === "COACH" ? user.id : null,
           createdBy: user.id,
@@ -271,10 +312,20 @@ export async function saveMatchAction(input: {
           data: validRecords.map((r) => ({
             matchId: matchId!,
             studentId: r.studentId,
+            selected: r.selected ?? true,
+            battingPosition: r.battingPosition ?? null,
             runs: r.runs,
             ballsFaced: r.ballsFaced ?? null,
+            fours: r.fours ?? 0,
+            sixes: r.sixes ?? 0,
+            dismissal: (r.dismissal as never) ?? null,
             wickets: r.wickets,
+            oversBowled: r.oversBowled ?? null,
+            maidens: r.maidens ?? 0,
+            runsConceded: r.runsConceded ?? null,
             catches: r.catches,
+            runOuts: r.runOuts ?? 0,
+            stumpings: r.stumpings ?? 0,
             strikeRate: r.strikeRate ?? null,
             economy: r.economy ?? null,
             manOfTheMatch: r.manOfTheMatch ?? false,
@@ -293,6 +344,7 @@ export async function saveMatchAction(input: {
     });
     revalidatePath("/matches");
     revalidatePath("/dashboard");
+    revalidatePath("/rankings");
     return { ok: true as const, id: matchId };
   } catch (error) {
     console.error("Save match failed:", error);

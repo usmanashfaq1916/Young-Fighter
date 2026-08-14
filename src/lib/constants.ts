@@ -26,6 +26,19 @@ export const PAYMENT_METHODS = [
 
 export const MATCH_RESULTS = ["WON", "LOST", "DRAW", "TIE"] as const;
 
+export const MATCH_TYPES = ["FRIENDLY", "TOURNAMENT", "LEAGUE", "PRACTICE", "OTHER"] as const;
+
+export const DISMISSALS = [
+  "BOWLED",
+  "CAUGHT",
+  "LBW",
+  "RUN_OUT",
+  "STUMPED",
+  "NOT_OUT",
+  "RETIRED",
+  "OTHER",
+] as const;
+
 export const EXPENSE_CATEGORIES = [
   "EQUIPMENT",
   "GROUND",
@@ -178,6 +191,25 @@ export const matchResultLabel: Record<string, string> = {
   LOST: "Lost",
   DRAW: "Draw",
   TIE: "Tie",
+};
+
+export const matchTypeLabel: Record<string, string> = {
+  FRIENDLY: "Friendly",
+  TOURNAMENT: "Tournament",
+  LEAGUE: "League",
+  PRACTICE: "Practice",
+  OTHER: "Other",
+};
+
+export const dismissalLabel: Record<string, string> = {
+  BOWLED: "Bowled",
+  CAUGHT: "Caught",
+  LBW: "LBW",
+  RUN_OUT: "Run Out",
+  STUMPED: "Stumped",
+  NOT_OUT: "Not Out",
+  RETIRED: "Retired",
+  OTHER: "Other",
 };
 
 export const expenseCategoryLabel: Record<string, string> = {

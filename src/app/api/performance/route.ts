@@ -56,8 +56,33 @@ export async function GET(request: NextRequest) {
     db.performance.count({ where }),
   ]);
 
+  const ids = records.map((r) => r.studentId);
+  const previousRating = new Map<string, number | null>();
+  if (ids.length > 0) {
+    const history = await db.performance.findMany({
+      where: { studentId: { in: ids } },
+      orderBy: [{ studentId: "asc" }, { date: "asc" }],
+      select: { studentId: true, date: true, overallRating: true },
+    });
+    const byStudent = new Map<string, { date: Date; overallRating: number }[]>();
+    for (const h of history) {
+      const list = byStudent.get(h.studentId) ?? [];
+      list.push({ date: h.date, overallRating: h.overallRating });
+      byStudent.set(h.studentId, list);
+    }
+    for (const r of records) {
+      const list = byStudent.get(r.studentId) ?? [];
+      const idx = list.findLastIndex((e) => e.date.getTime() === r.date.getTime());
+      const prev = idx > 0 ? list[idx - 1] : null;
+      previousRating.set(r.id, prev ? prev.overallRating : null);
+    }
+  }
+
   return NextResponse.json({
-    records,
+    records: records.map((r) => ({
+      ...r,
+      previousRating: previousRating.get(r.id) ?? null,
+    })),
     total,
     page,
     pageSize,

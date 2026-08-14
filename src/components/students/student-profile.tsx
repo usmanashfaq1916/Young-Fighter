@@ -38,6 +38,7 @@ import {
   playingRoleLabel,
   battingStyleLabel,
   bowlingStyleLabel,
+  dismissalLabel,
 } from "@/lib/constants";
 import { useToast } from "@/components/providers/toast-provider";
 
@@ -583,48 +584,117 @@ export function StudentProfile({
         )}
 
         {tab === "performance" && (
-          <div className="rounded-2xl border border-border bg-card">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="border-b border-border bg-surface-alt text-xs uppercase tracking-wide text-muted">
-                  <tr>
-                    <th className="px-4 py-3 font-semibold">Date</th>
-                    <th className="px-4 py-3 font-semibold">Bat</th>
-                    <th className="px-4 py-3 font-semibold">Bowl</th>
-                    <th className="px-4 py-3 font-semibold">Field</th>
-                    <th className="px-4 py-3 font-semibold">Fitness</th>
-                    <th className="px-4 py-3 font-semibold">Disc</th>
-                    <th className="px-4 py-3 font-semibold">Overall</th>
-                    <th className="px-4 py-3 font-semibold">Notes</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {performance.length === 0 && (
+          <div className="space-y-4">
+            {matches.length > 0 && (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {[
+                  { label: "Matches", value: matches.length },
+                  { label: "Runs", value: matches.reduce((s, m) => s + m.runs, 0) },
+                  { label: "Wickets", value: matches.reduce((s, m) => s + m.wickets, 0) },
+                  {
+                    label: "MOTM",
+                    value: matches.filter((m) => m.manOfTheMatch).length,
+                  },
+                ].map((s) => (
+                  <div
+                    key={s.label}
+                    className="rounded-2xl border border-border bg-card px-4 py-3"
+                  >
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+                      {s.label}
+                    </p>
+                    <p className="text-xl font-black text-primary">{s.value}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {performance.length > 1 && (
+              <div className="rounded-2xl border border-border bg-card px-4 py-3">
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">
+                  Rating trend
+                </p>
+                <svg
+                  viewBox="0 0 200 40"
+                  className="h-10 w-full max-w-xs"
+                  preserveAspectRatio="none"
+                  aria-hidden
+                >
+                  <polyline
+                    points={[...performance]
+                      .reverse()
+                      .map((p, i) => {
+                        const x = (i / Math.max(1, performance.length - 1)) * 200;
+                        const y = 36 - (p.overallRating / 10) * 32;
+                        return `${x.toFixed(1)},${y.toFixed(1)}`;
+                      })
+                      .join(" ")}
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    className="text-primary"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
+            )}
+
+            <div className="rounded-2xl border border-border bg-card">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="border-b border-border bg-surface-alt text-xs uppercase tracking-wide text-muted">
                     <tr>
-                      <td colSpan={8} className="px-4 py-10">
-                        <EmptyState
-                          title="No performance records"
-                          description="Coach assessments will appear here."
-                        />
-                      </td>
+                      <th className="px-4 py-3 font-semibold">Date</th>
+                      <th className="px-4 py-3 font-semibold">Bat</th>
+                      <th className="px-4 py-3 font-semibold">Bowl</th>
+                      <th className="px-4 py-3 font-semibold">Field</th>
+                      <th className="px-4 py-3 font-semibold">Fitness</th>
+                      <th className="px-4 py-3 font-semibold">Disc</th>
+                      <th className="px-4 py-3 font-semibold">Overall</th>
+                      <th className="px-4 py-3 font-semibold">Notes</th>
                     </tr>
-                  )}
-                  {performance.map((p) => (
-                    <tr key={p.id}>
-                      <td className="px-4 py-3 text-muted">{formatDate(p.date)}</td>
-                      <td className="px-4 py-3">{p.battingRating}/10</td>
-                      <td className="px-4 py-3">{p.bowlingRating}/10</td>
-                      <td className="px-4 py-3">{p.fieldingRating}/10</td>
-                      <td className="px-4 py-3">{p.fitnessRating}/10</td>
-                      <td className="px-4 py-3">{p.disciplineRating}/10</td>
-                      <td className="px-4 py-3 font-bold text-primary">
-                        {p.overallRating}/10
-                      </td>
-                      <td className="px-4 py-3 text-muted">{p.remarks ?? "—"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {performance.length === 0 && (
+                      <tr>
+                        <td colSpan={8} className="px-4 py-10">
+                          <EmptyState
+                            title="No performance records"
+                            description="Coach assessments will appear here."
+                          />
+                        </td>
+                      </tr>
+                    )}
+                    {performance.map((p) => (
+                      <tr key={p.id}>
+                        <td className="px-4 py-3 text-muted">{formatDate(p.date)}</td>
+                        <td className="px-4 py-3">{p.battingRating}/10</td>
+                        <td className="px-4 py-3">{p.bowlingRating}/10</td>
+                        <td className="px-4 py-3">{p.fieldingRating}/10</td>
+                        <td className="px-4 py-3">{p.fitnessRating}/10</td>
+                        <td className="px-4 py-3">{p.disciplineRating}/10</td>
+                        <td className="px-4 py-3">
+                          <span className="font-bold text-primary">
+                            {p.overallRating}/10
+                          </span>
+                          {p.subSkills && (
+                            <p className="mt-0.5 text-[10px] leading-tight text-muted">
+                              {Object.entries(p.subSkills)
+                                .map(
+                                  ([k, v]) =>
+                                    `${k}: ${Object.values(v as Record<string, number>).join("/")}`
+                                )
+                                .join(" · ")}
+                            </p>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-muted">{p.remarks ?? "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
@@ -638,15 +708,19 @@ export function StudentProfile({
                     <th className="px-4 py-3 font-semibold">Match</th>
                     <th className="px-4 py-3 font-semibold">Date</th>
                     <th className="px-4 py-3 font-semibold">Runs</th>
-                    <th className="px-4 py-3 font-semibold">Wickets</th>
-                    <th className="px-4 py-3 font-semibold">Catches</th>
+                    <th className="hidden px-4 py-3 font-semibold sm:table-cell">Balls</th>
+                    <th className="hidden px-4 py-3 font-semibold sm:table-cell">4s/6s</th>
+                    <th className="hidden px-4 py-3 font-semibold md:table-cell">Out</th>
+                    <th className="px-4 py-3 font-semibold">Wkts</th>
+                    <th className="hidden px-4 py-3 font-semibold sm:table-cell">O-R</th>
+                    <th className="hidden px-4 py-3 font-semibold sm:table-cell">Ct</th>
                     <th className="px-4 py-3 font-semibold">Result</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   {matches.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="px-4 py-10">
+                      <td colSpan={10} className="px-4 py-10">
                         <EmptyState
                           title="No matches played"
                           description="Match records will appear here."
@@ -655,7 +729,7 @@ export function StudentProfile({
                     </tr>
                   )}
                   {matches.map((m) => (
-                    <tr key={m.id}>
+                    <tr key={m.id} className={!m.selected ? "opacity-50" : ""}>
                       <td className="px-4 py-3 font-medium">
                         {m.match.opponent}
                         {m.manOfTheMatch && (
@@ -663,11 +737,28 @@ export function StudentProfile({
                             MOTM
                           </Badge>
                         )}
+                        {!m.selected && (
+                          <span className="ml-2 text-[10px] font-bold uppercase text-muted">
+                            Sub
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-muted">{formatDate(m.match.matchDate)}</td>
-                      <td className="px-4 py-3">{m.runs}</td>
+                      <td className="px-4 py-3 font-bold text-primary">{m.runs}</td>
+                      <td className="hidden px-4 py-3 text-muted sm:table-cell">
+                        {m.ballsFaced ?? "—"}
+                      </td>
+                      <td className="hidden px-4 py-3 text-muted sm:table-cell">
+                        {m.fours > 0 || m.sixes > 0 ? `${m.fours}/${m.sixes}` : "—"}
+                      </td>
+                      <td className="hidden px-4 py-3 text-muted md:table-cell">
+                        {m.dismissal ? dismissalLabel[m.dismissal] : "—"}
+                      </td>
                       <td className="px-4 py-3">{m.wickets}</td>
-                      <td className="px-4 py-3">{m.catches}</td>
+                      <td className="hidden px-4 py-3 text-muted sm:table-cell">
+                        {m.oversBowled != null ? `${m.oversBowled}-${m.runsConceded ?? 0}` : "—"}
+                      </td>
+                      <td className="hidden px-4 py-3 text-muted sm:table-cell">{m.catches}</td>
                       <td className="px-4 py-3">
                         <Badge
                           tone={

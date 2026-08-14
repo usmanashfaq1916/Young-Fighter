@@ -16,6 +16,7 @@ const SHARED_MODULE_PATHS = [
   "/attendance",
   "/performance",
   "/matches",
+  "/rankings",
   "/reports",
   "/scan",
 ];
