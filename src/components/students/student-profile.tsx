@@ -130,15 +130,15 @@ export function StudentProfile({
   @page { size: 85mm 55mm; margin: 0; }
   * { box-sizing: border-box; margin: 0; }
   body { font-family: 'Segoe UI', Arial, sans-serif; }
-  .card { width: 85mm; height: 55mm; display: flex; background: #0B1F3A; color: #fff; overflow: hidden; }
+  .card { width: 85mm; height: 55mm; display: flex; background: #1A2F4A; color: #fff; overflow: hidden; }
   .left { flex: 1; padding: 6mm 4mm; display: flex; flex-direction: column; justify-content: space-between; }
-  .left h1 { font-size: 13px; letter-spacing: 1px; color: #F5D982; }
+  .left h1 { font-size: 13px; letter-spacing: 1px; color: #E6C879; }
   .left h2 { font-size: 15px; margin-top: 2mm; }
   .left p { font-size: 10px; color: #ccc; margin-top: 1mm; }
-  .left .id { font-size: 13px; font-weight: 700; color: #F5D982; }
-  .right { width: 26mm; background: #0f5a30; display: flex; align-items: center; justify-content: center; padding: 2mm; }
+  .left .id { font-size: 13px; font-weight: 700; color: #E6C879; }
+  .right { width: 26mm; background: #145c38; display: flex; align-items: center; justify-content: center; padding: 2mm; }
   .right img { width: 22mm; height: 22mm; }
-  .bar { height: 1.5mm; background: #d4a017; }
+  .bar { height: 1.5mm; background: #bd8f1d; }
 </style></head><body>
 <div class="bar"></div>
 <div class="card">

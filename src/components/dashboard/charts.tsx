@@ -24,11 +24,11 @@ import {
 import type { MonthPoint } from "@/lib/dashboard";
 
 const COLORS = {
-  green: "#1e7a45",
-  gold: "#d4a017",
-  navy: "#0b1f3a",
-  red: "#c62828",
-  blue: "#1565c0",
+  green: "#268a52",
+  gold: "#bd8f1d",
+  navy: "#1a2f4a",
+  red: "#c2422e",
+  blue: "#1f6fbf",
 };
 
 export function ChartCard({
