@@ -1,7 +1,7 @@
 {
   "name": "Young Fighters Academy",
   "short_name": "YFA",
-  "description": "Premium cricket academy management platform for administrators, coaches, students and parents.",
+  "description": "Young Fighters Academy — developing tomorrow's cricket champions with structured coaching, fitness training and match experience.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0b1f3a",

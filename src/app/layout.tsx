@@ -18,12 +18,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://young-fighters-academy.vercel.app"),
   title: {
-    default: `${ACADEMY_NAME} — Cricket Academy Management`,
+    default: `${ACADEMY_NAME} — Developing Tomorrow's Cricket Champions`,
     template: `%s | ${ACADEMY_NAME}`,
   },
   description:
-    "Premium cricket academy management platform for administrators, coaches, students and parents.",
+    "Young Fighters Academy is a cricket academy developing tomorrow's champions — structured coaching, fitness training, match exposure and player development programs.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
@@ -32,7 +33,34 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: "/icon-192.png",
-    apple: "/icon-192.png",
+    apple: "/apple-touch-icon.png",
+  },
+  openGraph: {
+    type: "website",
+    siteName: ACADEMY_NAME,
+    title: `${ACADEMY_NAME} — Developing Tomorrow's Cricket Champions`,
+    description:
+      "Cricket coaching, fitness training and match experience for young players. Apply for admission today.",
+    url: "https://young-fighters-academy.vercel.app",
+    images: [
+      {
+        url: "/icon-512.png",
+        width: 512,
+        height: 512,
+        alt: `${ACADEMY_NAME} logo`,
+      },
+    ],
+  },
+  twitter: {
+    card: "summary",
+    title: `${ACADEMY_NAME} — Developing Tomorrow's Cricket Champions`,
+    description:
+      "Cricket coaching, fitness training and match experience for young players. Apply for admission today.",
+    images: ["/icon-512.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
   },
 };
 
