@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Bell, Megaphone, CheckCheck, Trash2, Plus } from "lucide-react";
+import { Bell, Megaphone, CheckCheck, Trash2, Plus, AlertTriangle, ArrowUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -30,25 +30,33 @@ type Announcement = {
   title: string;
   body: string;
   audience: string;
+  priority: string;
+  batchId: string | null;
+  batch: { name: string } | null;
   createdAt: string;
 };
 
 export function NotificationsList({
   initial,
   announcements,
+  batches,
   role,
 }: {
   initial: Notif[];
   announcements: Announcement[];
+  batches: { id: string; name: string }[];
   role: string;
 }) {
   const { toast } = useToast();
   const [pending, startTransition] = useTransition();
   const [notifs, setNotifs] = useState(initial);
   const [showAnnounce, setShowAnnounce] = useState(false);
-  const [annForm, setAnnForm] = useState({ title: "", body: "", audience: "ALL" });
+  const [annForm, setAnnForm] = useState({ title: "", body: "", audience: "ALL", priority: "MEDIUM", batchId: "" });
 
   const unread = notifs.filter((n) => !n.read).length;
+
+  const priorityTone = (p: string) =>
+    p === "HIGH" ? "red" : p === "LOW" ? "gray" : "amber";
 
   const markAll = () => {
     startTransition(async () => {
@@ -74,7 +82,7 @@ export function NotificationsList({
       if (res.ok) {
         toast("Announcement published", "success");
         setShowAnnounce(false);
-        setAnnForm({ title: "", body: "", audience: "ALL" });
+        setAnnForm({ title: "", body: "", audience: "ALL", priority: "MEDIUM", batchId: "" });
         window.location.reload();
       } else {
         toast(res.error, "error");
@@ -90,12 +98,37 @@ export function NotificationsList({
             <Megaphone className="h-4 w-4 text-gold" /> Announcements
           </h2>
           {announcements.map((a) => (
-            <div key={a.id} className="rounded-2xl border border-gold/30 bg-gold/5 px-5 py-4">
+            <div
+              key={a.id}
+              className={cn(
+                "rounded-2xl border bg-gold/5 px-5 py-4",
+                a.priority === "HIGH" ? "border-danger/40" : "border-gold/30"
+              )}
+            >
               <div className="flex items-center justify-between gap-3">
-                <p className="font-bold">{a.title}</p>
+                <p className="flex items-center gap-2 font-bold">
+                  {a.priority === "HIGH" ? (
+                    <AlertTriangle className="h-4 w-4 text-danger" />
+                  ) : a.priority === "LOW" ? (
+                    <ArrowUp className="h-4 w-4 rotate-180 text-muted" />
+                  ) : (
+                    <Megaphone className="h-4 w-4 text-gold" />
+                  )}
+                  {a.title}
+                  {a.priority !== "MEDIUM" && (
+                    <Badge tone={priorityTone(a.priority) as "red" | "gray" | "amber"}>
+                      {a.priority}
+                    </Badge>
+                  )}
+                </p>
                 <span className="shrink-0 text-xs text-muted">{formatDate(a.createdAt)}</span>
               </div>
               <p className="mt-1 text-sm text-muted">{a.body}</p>
+              {a.batch && (
+                <p className="mt-1.5 text-xs font-semibold text-muted">
+                  Target batch: {a.batch.name}
+                </p>
+              )}
             </div>
           ))}
         </section>
@@ -203,19 +236,53 @@ export function NotificationsList({
               placeholder="Details of the announcement…"
             />
           </label>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted">Audience</span>
+              <select
+                className="input"
+                value={annForm.audience}
+                onChange={(e) => setAnnForm({ ...annForm, audience: e.target.value })}
+              >
+                <option value="ALL">Everyone</option>
+                <option value="ADMIN">Admins</option>
+                <option value="COACH">Coaches</option>
+                <option value="STUDENT">Students</option>
+                <option value="PARENT">Parents</option>
+              </select>
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted">Priority</span>
+              <select
+                className="input"
+                value={annForm.priority}
+                onChange={(e) => setAnnForm({ ...annForm, priority: e.target.value })}
+              >
+                <option value="LOW">Low</option>
+                <option value="MEDIUM">Medium</option>
+                <option value="HIGH">High</option>
+              </select>
+            </label>
+          </div>
           <label className="flex flex-col gap-1.5">
-            <span className="text-xs font-semibold uppercase tracking-wide text-muted">Audience</span>
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted">
+              Target batch (optional)
+            </span>
             <select
               className="input"
-              value={annForm.audience}
-              onChange={(e) => setAnnForm({ ...annForm, audience: e.target.value })}
+              value={annForm.batchId}
+              onChange={(e) => setAnnForm({ ...annForm, batchId: e.target.value })}
             >
-              <option value="ALL">Everyone</option>
-              <option value="ADMIN">Admins</option>
-              <option value="COACH">Coaches</option>
-              <option value="STUDENT">Students</option>
-              <option value="PARENT">Parents</option>
+              <option value="">All batches</option>
+              {batches.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
             </select>
+            <span className="text-xs text-muted">
+              When a batch is selected, students and parents of that batch are notified directly.
+            </span>
           </label>
           <div className="flex justify-end gap-2">
             <Button variant="secondary" onClick={() => setShowAnnounce(false)}>

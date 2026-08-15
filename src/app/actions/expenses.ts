@@ -16,6 +16,7 @@ export async function addExpenseAction(input: {
   category: string;
   amount: number;
   date: string;
+  paymentMethod?: string | null;
   notes?: string;
 }) {
   const user = await requireRole("ADMIN");
@@ -40,6 +41,7 @@ export async function addExpenseAction(input: {
         category: data.category as never,
         amount: data.amount,
         date: dateOnlyUTC(data.date),
+        paymentMethod: data.paymentMethod || null,
         notes: data.notes || null,
         createdBy: user.id,
       },
@@ -68,6 +70,7 @@ export async function updateExpenseAction(
     category: string;
     amount: number;
     date: string;
+    paymentMethod?: string | null;
     notes?: string;
   }
 ) {
@@ -94,6 +97,7 @@ export async function updateExpenseAction(
       category: data.category as never,
       amount: data.amount,
       date: dateOnlyUTC(data.date),
+      paymentMethod: data.paymentMethod || null,
       notes: data.notes || null,
     },
   });

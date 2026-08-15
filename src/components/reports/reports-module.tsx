@@ -1,12 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { FileSpreadsheet, FileText, RefreshCw, BarChart3 } from "lucide-react";
+import { FileSpreadsheet, FileText, FileDown, RefreshCw, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/ui/stat-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
-import { exportToExcel, type ExcelColumn } from "@/lib/excel";
+import { exportToExcel, exportToCsv, type ExcelColumn } from "@/lib/excel";
 import { makeDoc, autoTable, downloadPdf, footer } from "@/lib/pdf";
 import { formatDate, formatMoney, currentMonth } from "@/lib/utils";
 import { useToast } from "@/components/providers/toast-provider";
@@ -30,12 +30,16 @@ type ReportData = {
     batch: string | null;
     status: string;
     monthlyFee: number;
-    attendance: { PRESENT: number; ABSENT: number; LEAVE: number };
+    attendance: { PRESENT: number; ABSENT: number; LEAVE: number; LATE: number; EXCUSED: number };
     fees: { paid: number; due: number; count: number };
     avgRating: number;
     performanceCount: number;
   }[];
   expenses: { id: string; title: string; category: string; amount: number; date: string }[];
+  attendanceReport: {
+    byDate: { date: string; PRESENT: number; ABSENT: number; LATE: number; EXCUSED: number; LEAVE: number }[];
+    byBatch: { batch: string; PRESENT: number; ABSENT: number; LATE: number; EXCUSED: number; LEAVE: number }[];
+  };
   matches: {
     id: string;
     matchDate: string;
@@ -202,6 +206,83 @@ export function ReportsModule({ role }: { role: string }) {
     toast("Financial report downloaded (PDF)", "success");
   };
 
+  const exportStudentsCsv = () => {
+    if (!data) return;
+    const columns: ExcelColumn<(typeof data.studentStats)[number]>[] = [
+      { header: "Student ID", key: "studentId", accessor: (r) => r.studentId },
+      { header: "Name", key: "name", accessor: (r) => r.fullName },
+      { header: "Batch", key: "batch", accessor: (r) => r.batch ?? "" },
+      { header: "Status", key: "status", accessor: (r) => r.status },
+      { header: "Present", key: "present", accessor: (r) => r.attendance.PRESENT },
+      { header: "Absent", key: "absent", accessor: (r) => r.attendance.ABSENT },
+      { header: "Late", key: "late", accessor: (r) => r.attendance.LATE },
+      { header: "Excused", key: "excused", accessor: (r) => r.attendance.EXCUSED },
+      ...(isAdmin
+        ? [
+            { header: "Fees Paid", key: "paid", accessor: (r) => r.fees.paid },
+            { header: "Fees Due", key: "due", accessor: (r) => r.fees.due },
+          ] as ExcelColumn<(typeof data.studentStats)[number]>[]
+        : []),
+      { header: "Avg Rating", key: "rating", accessor: (r) => Number(r.avgRating.toFixed(2)) },
+    ];
+    exportToCsv(data.studentStats, columns, `students-report-${month}`);
+    void logReportExportAction("CSV", `students ${month}`);
+    toast("Students report downloaded (CSV)", "success");
+  };
+
+  const exportAttendanceCsv = () => {
+    if (!data) return;
+    const columns: ExcelColumn<(typeof data.attendanceReport.byDate)[number]>[] = [
+      { header: "Date", key: "date", accessor: (r) => r.date },
+      { header: "Present", key: "present", accessor: (r) => r.PRESENT },
+      { header: "Absent", key: "absent", accessor: (r) => r.ABSENT },
+      { header: "Late", key: "late", accessor: (r) => r.LATE },
+      { header: "Excused", key: "excused", accessor: (r) => r.EXCUSED },
+      { header: "Leave", key: "leave", accessor: (r) => r.LEAVE },
+    ];
+    exportToCsv(data.attendanceReport.byDate, columns, `attendance-daily-${month}`);
+    void logReportExportAction("CSV", `attendance daily ${month}`);
+    toast("Daily attendance report downloaded (CSV)", "success");
+  };
+
+  const exportAttendancePdf = () => {
+    if (!data) return;
+    const doc = makeDoc("Attendance Report");
+    autoTable(doc, {
+      startY: 40,
+      head: [["Date", "Present", "Absent", "Late", "Excused", "Leave"]],
+      body: data.attendanceReport.byDate.map((r) => [
+        r.date,
+        String(r.PRESENT),
+        String(r.ABSENT),
+        String(r.LATE),
+        String(r.EXCUSED),
+        String(r.LEAVE),
+      ]),
+      headStyles: { fillColor: [11, 31, 58] },
+      styles: { fontSize: 8 },
+    });
+    const batchStart = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+    autoTable(doc, {
+      startY: batchStart,
+      head: [["Batch", "Present", "Absent", "Late", "Excused", "Leave"]],
+      body: data.attendanceReport.byBatch.map((r) => [
+        r.batch,
+        String(r.PRESENT),
+        String(r.ABSENT),
+        String(r.LATE),
+        String(r.EXCUSED),
+        String(r.LEAVE),
+      ]),
+      headStyles: { fillColor: [15, 90, 48] },
+      styles: { fontSize: 8 },
+    });
+    footer(doc);
+    downloadPdf(doc, `attendance-report-${month}.pdf`);
+    void logReportExportAction("PDF", `attendance ${month}`);
+    toast("Attendance report downloaded (PDF)", "success");
+  };
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-end gap-3">
@@ -224,6 +305,9 @@ export function ReportsModule({ role }: { role: string }) {
           <Button variant="outline" onClick={exportStudentsExcel}>
             <FileSpreadsheet className="h-4 w-4" /> Students
           </Button>
+          <Button variant="outline" onClick={exportStudentsCsv}>
+            <FileDown className="h-4 w-4" /> Students CSV
+          </Button>
           {isAdmin && (
             <Button variant="outline" onClick={exportExpensesExcel}>
               <FileSpreadsheet className="h-4 w-4" /> Expenses
@@ -232,8 +316,14 @@ export function ReportsModule({ role }: { role: string }) {
           <Button variant="outline" onClick={exportMatchesExcel}>
             <FileSpreadsheet className="h-4 w-4" /> Matches
           </Button>
+          <Button variant="outline" onClick={exportAttendanceCsv}>
+            <FileDown className="h-4 w-4" /> Attendance CSV
+          </Button>
           <Button variant="outline" onClick={exportStudentsPdf}>
             <FileText className="h-4 w-4" /> Students PDF
+          </Button>
+          <Button variant="outline" onClick={exportAttendancePdf}>
+            <FileText className="h-4 w-4" /> Attendance PDF
           </Button>
           {isAdmin && (
             <Button variant="outline" onClick={exportFinancialPdf}>

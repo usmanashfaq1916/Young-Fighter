@@ -36,6 +36,7 @@ type StudentRow = {
 type PageData = {
   students: StudentRow[];
   batches: { id: string; name: string }[];
+  coaches: { id: string; fullName: string }[];
   total: number;
   page: number;
   pageSize: number;
@@ -56,6 +57,7 @@ export function StudentTable({
   const [skill, setSkill] = useState("");
   const [status, setStatus] = useState("");
   const [gender, setGender] = useState("");
+  const [coach, setCoach] = useState("");
   const [sort, setSort] = useState("name");
   const [data, setData] = useState(initial);
   const [loading, setLoading] = useState(false);
@@ -74,6 +76,7 @@ export function StudentTable({
       if (skill) params.set("skill", skill);
       if (status) params.set("status", status);
       if (gender) params.set("gender", gender);
+      if (coach) params.set("coach", coach);
       if (sort) params.set("sort", sort);
       try {
         const res = await fetch(`/api/students?${params.toString()}`, {
@@ -84,13 +87,13 @@ export function StudentTable({
         setLoading(false);
       }
     },
-    [debouncedQ, batch, skill, status, gender, sort]
+    [debouncedQ, batch, skill, status, gender, coach, sort]
   );
 
   useEffect(() => {
     const t = setTimeout(() => void fetchPage(1), 0);
     return () => clearTimeout(t);
-  }, [debouncedQ, batch, skill, status, gender, sort, fetchPage]);
+  }, [debouncedQ, batch, skill, status, gender, coach, sort, fetchPage]);
 
   const runAction = (fn: () => Promise<unknown>) => {
     startTransition(async () => {
@@ -146,6 +149,12 @@ export function StudentTable({
               { value: "FEMALE", label: "Female" },
             ]}
           />
+          <FilterPill
+            label="Coach"
+            value={coach}
+            onChange={setCoach}
+            options={data.coaches.map((c) => ({ value: c.id, label: c.fullName }))}
+          />
         </div>
         <div className="ml-auto flex items-center gap-2">
           <select
@@ -177,12 +186,12 @@ export function StudentTable({
             icon={<Phone className="h-6 w-6" />}
             title="No students found"
             description={
-              q || batch || skill || status || gender
+              q || batch || skill || status || gender || coach
                 ? "Try adjusting your search or filters."
                 : "Register your first student to get started."
             }
             action={
-              !q && !batch && !skill && !status && !gender ? (
+              !q && !batch && !skill && !status && !gender && !coach ? (
                 <Button onClick={() => router.push("/students/new")}>
                   <Plus className="h-4 w-4" /> Add Student
                 </Button>

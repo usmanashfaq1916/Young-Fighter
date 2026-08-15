@@ -35,31 +35,58 @@ export async function createAnnouncementAction(input: {
   title: string;
   body: string;
   audience: string;
+  priority: string;
+  batchId?: string;
 }) {
   const user = await requireRole("ADMIN");
   if (!input.title.trim() || !input.body.trim()) {
     return { ok: false as const, error: "Title and message are required." };
   }
+  const priority = (["LOW", "MEDIUM", "HIGH"] as const).includes(input.priority as never)
+    ? (input.priority as "LOW" | "MEDIUM" | "HIGH")
+    : "MEDIUM";
 
   const announcement = await db.announcement.create({
     data: {
       title: input.title.trim(),
       body: input.body.trim(),
       audience: (input.audience || "ALL") as never,
+      priority,
+      batchId: input.batchId || null,
       createdBy: user.id,
     },
   });
 
-  const roles = (["ADMIN", "COACH", "STUDENT", "PARENT"] as const).filter(
-    (r) => input.audience === "ALL" || r === input.audience
-  );
-
-  for (const role of roles) {
-    await notifyUsers(role, {
-      title: input.title.trim(),
-      body: input.body.trim(),
-      type: "announcement",
+  if (input.batchId) {
+    const students = await db.student.findMany({
+      where: { batchId: input.batchId, deletedAt: null, status: "ACTIVE" },
+      include: { parentLinks: { select: { parentId: true } } },
     });
+    const studentUsers = await db.user.findMany({
+      where: { role: "STUDENT", studentId: { in: students.map((s) => s.id) } },
+    });
+    const ids = [
+      ...studentUsers.map((s) => s.id),
+      ...students.flatMap((s) => s.parentLinks.map((p) => p.parentId)),
+    ];
+    if (ids.length > 0) {
+      await notifyUsers(ids, {
+        title: input.title.trim(),
+        body: input.body.trim(),
+        type: "announcement",
+      });
+    }
+  } else {
+    const roles = (["ADMIN", "COACH", "STUDENT", "PARENT"] as const).filter(
+      (r) => input.audience === "ALL" || r === input.audience
+    );
+    for (const role of roles) {
+      await notifyUsers(role, {
+        title: input.title.trim(),
+        body: input.body.trim(),
+        type: "announcement",
+      });
+    }
   }
 
   await logActivity({
@@ -73,6 +100,29 @@ export async function createAnnouncementAction(input: {
 
   revalidatePath("/notifications");
   revalidatePath("/settings");
+  return { ok: true as const };
+}
+
+export async function removeStudentFromBatchAction(studentId: string, batchId: string) {
+  const user = await requireRole("ADMIN");
+  const student = await db.student.findUnique({ where: { id: studentId } });
+  if (!student || student.batchId !== batchId) {
+    return { ok: false as const, error: "Student is not in this batch." };
+  }
+  await db.student.update({
+    where: { id: studentId },
+    data: { batchId: null, updatedBy: user.id },
+  });
+  await logActivity({
+    userId: user.id,
+    type: "STUDENT_UPDATED",
+    action: "Student removed from batch",
+    entity: "student",
+    entityId: studentId,
+    details: `${student.fullName} removed from batch`,
+  });
+  revalidatePath("/settings");
+  revalidatePath(`/students/${studentId}`);
   return { ok: true as const };
 }
 

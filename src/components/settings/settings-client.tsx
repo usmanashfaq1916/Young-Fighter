@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Plus, Pencil, Trash2, Save } from "lucide-react";
+import { Plus, Pencil, Trash2, Save, Users, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
@@ -11,6 +11,7 @@ import {
   updateBatchAction,
   deleteBatchAction,
   updateSettingsAction,
+  removeStudentFromBatchAction,
 } from "@/app/actions/misc";
 import { useToast } from "@/components/providers/toast-provider";
 
@@ -27,6 +28,7 @@ type Batch = {
   capacity: number;
   isActive: boolean;
   _count: { students: number };
+  students: { id: string; fullName: string; studentId: string; status: string }[];
 };
 
 const SETTING_FIELDS = [
@@ -66,6 +68,28 @@ export function SettingsClient({
     isActive: boolean;
   }>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [removeTarget, setRemoveTarget] = useState<{ batchId: string; studentId: string; name: string } | null>(null);
+  const [expanded, setExpanded] = useState<string | null>(null);
+
+  const confirmRemove = () => {
+    if (!removeTarget) return;
+    startTransition(async () => {
+      const res = await removeStudentFromBatchAction(removeTarget.studentId, removeTarget.batchId);
+      if (res.ok) {
+        toast("Student removed from batch", "success");
+        setItems((prev) =>
+          prev.map((b) =>
+            b.id === removeTarget.batchId
+              ? { ...b, students: b.students.filter((s) => s.id !== removeTarget.studentId) }
+              : b
+          )
+        );
+      } else {
+        toast(res.error, "error");
+      }
+      setRemoveTarget(null);
+    });
+  };
 
   const saveSettings = () => {
     startTransition(async () => {
@@ -184,56 +208,95 @@ export function SettingsClient({
         ) : (
           <ul className="divide-y divide-border">
             {items.map((b) => (
-              <li key={b.id} className="flex items-center gap-3 py-3">
-                <div className="min-w-0 flex-1">
-                  <p className="flex items-center gap-2 font-semibold">
-                    {b.name}
-                    {!b.isActive && <Badge tone="red">Inactive</Badge>}
-                    <Badge tone="gray">
-                      {b._count.students}/{b.capacity || "∞"} students
-                    </Badge>
-                  </p>
-                  <p className="truncate text-xs text-muted">
-                    {b.description || "No description"}
-                    {b.coach?.fullName ? ` · Coach: ${b.coach.fullName}` : ""}
-                    {b.ageGroup ? ` · Age: ${b.ageGroup}` : ""}
-                  </p>
-                  {(b.trainingDays || b.trainingTime || b.trainingLocation) && (
-                    <p className="truncate text-xs text-muted">
-                      Training:{" "}
-                      {[b.trainingDays, b.trainingTime, b.trainingLocation]
-                        .filter(Boolean)
-                        .join(" · ")}
+              <li key={b.id} className="border-b border-border py-3 last:border-0">
+                <div className="flex items-center gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="flex items-center gap-2 font-semibold">
+                      {b.name}
+                      {!b.isActive && <Badge tone="red">Inactive</Badge>}
+                      <Badge tone="gray">
+                        {b._count.students}/{b.capacity || "∞"} students
+                      </Badge>
                     </p>
+                    <p className="truncate text-xs text-muted">
+                      {b.description || "No description"}
+                      {b.coach?.fullName ? ` · Coach: ${b.coach.fullName}` : ""}
+                      {b.ageGroup ? ` · Age: ${b.ageGroup}` : ""}
+                    </p>
+                    {(b.trainingDays || b.trainingTime || b.trainingLocation) && (
+                      <p className="truncate text-xs text-muted">
+                        Training:{" "}
+                        {[b.trainingDays, b.trainingTime, b.trainingLocation]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => setExpanded(expanded === b.id ? null : b.id)}
+                    className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold text-muted transition hover:bg-surface-alt hover:text-foreground"
+                  >
+                    <Users className="h-4 w-4" />
+                    Members ({b.students.length})
+                  </button>
+                  {user.role === "ADMIN" && (
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() =>
+                          setBatchModal({
+                            id: b.id,
+                            name: b.name,
+                            description: b.description ?? "",
+                            coachId: b.coachId ?? "",
+                            ageGroup: b.ageGroup ?? "",
+                            trainingDays: b.trainingDays ?? "",
+                            trainingTime: b.trainingTime ?? "",
+                            trainingLocation: b.trainingLocation ?? "",
+                            capacity: b.capacity ?? 0,
+                            isActive: b.isActive,
+                          })
+                        }
+                        className="rounded-lg p-2 text-muted transition hover:bg-surface-alt hover:text-foreground"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => setDeleteId(b.id)}
+                        className="rounded-lg p-2 text-muted transition hover:bg-danger/10 hover:text-danger"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   )}
                 </div>
-                {user.role === "ADMIN" && (
-                  <div className="flex gap-1">
-                    <button
-                      onClick={() =>
-                        setBatchModal({
-                          id: b.id,
-                          name: b.name,
-                          description: b.description ?? "",
-                          coachId: b.coachId ?? "",
-                          ageGroup: b.ageGroup ?? "",
-                          trainingDays: b.trainingDays ?? "",
-                          trainingTime: b.trainingTime ?? "",
-                          trainingLocation: b.trainingLocation ?? "",
-                          capacity: b.capacity ?? 0,
-                          isActive: b.isActive,
-                        })
-                      }
-                      className="rounded-lg p-2 text-muted transition hover:bg-surface-alt hover:text-foreground"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => setDeleteId(b.id)}
-                      className="rounded-lg p-2 text-muted transition hover:bg-danger/10 hover:text-danger"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                {expanded === b.id && (
+                  <div className="mt-2 rounded-xl border border-border bg-surface-alt/40 p-3">
+                    {b.students.length === 0 ? (
+                      <p className="text-xs text-muted">No students in this batch yet.</p>
+                    ) : (
+                      <ul className="divide-y divide-border">
+                        {b.students.map((s) => (
+                          <li key={s.id} className="flex items-center gap-2 py-1.5">
+                            <span className="min-w-0 flex-1 truncate text-sm">
+                              {s.fullName}{" "}
+                              <span className="text-xs text-muted">({s.studentId})</span>
+                            </span>
+                            {s.status !== "ACTIVE" && <Badge tone="red">Inactive</Badge>}
+                            {user.role === "ADMIN" && (
+                              <button
+                                onClick={() =>
+                                  setRemoveTarget({ batchId: b.id, studentId: s.id, name: s.fullName })
+                                }
+                                className="rounded-lg p-1 text-muted transition hover:bg-danger/10 hover:text-danger"
+                                title="Remove from batch"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
                 )}
               </li>
@@ -358,6 +421,17 @@ export function SettingsClient({
         title="Delete batch?"
         message="This batch will be removed permanently. Batches with students can't be deleted."
         confirmLabel="Delete"
+        danger
+        loading={pending}
+      />
+
+      <ConfirmDialog
+        open={!!removeTarget}
+        onClose={() => setRemoveTarget(null)}
+        onConfirm={confirmRemove}
+        title="Remove student from batch?"
+        message={`${removeTarget?.name} will be removed from this batch. You can reassign them later from their profile.`}
+        confirmLabel="Remove"
         danger
         loading={pending}
       />

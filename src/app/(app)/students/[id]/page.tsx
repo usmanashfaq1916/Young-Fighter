@@ -39,7 +39,7 @@ export default async function StudentProfilePage({
 
   const isAdmin = user.role === "ADMIN";
 
-  const [attendance, fees, performance, matches, upcomingDues, attendanceRecords, goals, training] =
+  const [attendance, fees, performance, matches, upcomingDues, attendanceRecords, goals, training, documents] =
     await Promise.all([
       db.attendance.groupBy({
         by: ["status"],
@@ -120,6 +120,18 @@ export default async function StudentProfilePage({
           },
         },
       }),
+      db.document.findMany({
+        where: { studentId: id },
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          title: true,
+          type: true,
+          url: true,
+          createdAt: true,
+          uploader: { select: { fullName: true } },
+        },
+      }),
     ]);
 
   type MonthCounts = {
@@ -169,6 +181,7 @@ export default async function StudentProfilePage({
       upcomingDues={JSON.parse(JSON.stringify(upcomingDues))}
       goals={JSON.parse(JSON.stringify(goals))}
       training={JSON.parse(JSON.stringify(training))}
+      documents={JSON.parse(JSON.stringify(documents))}
       role={user.role}
       initialTab={tab}
     />

@@ -26,7 +26,10 @@ export async function GET(request: NextRequest) {
   if (to) where.date = { ...(where.date as object), lte: to };
   if (category) where.category = category;
 
-  const [expenses, total, byCategory, totals] = await Promise.all([
+  const now = new Date();
+  const trendFrom = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+
+  const [expenses, total, byCategory, totals, trendExpenses] = await Promise.all([
     db.expense.findMany({
       where,
       orderBy: { date: "desc" },
@@ -45,7 +48,24 @@ export async function GET(request: NextRequest) {
       _sum: { amount: true },
       _count: { _all: true },
     }),
+    db.expense.findMany({
+      where: { date: { gte: trendFrom } },
+      select: { amount: true, date: true },
+    }),
   ]);
+
+  const monthMap = new Map<string, number>();
+  for (const e of trendExpenses) {
+    const d = new Date(e.date);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    monthMap.set(key, (monthMap.get(key) ?? 0) + e.amount);
+  }
+  const trend: { month: string; amount: number }[] = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    trend.push({ month: key, amount: monthMap.get(key) ?? 0 });
+  }
 
   return NextResponse.json({
     expenses,
@@ -55,5 +75,6 @@ export async function GET(request: NextRequest) {
     pages: Math.ceil(total / pageSize),
     byCategory,
     totals: { amount: totals._sum.amount ?? 0, count: totals._count._all },
+    trend,
   });
 }

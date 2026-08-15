@@ -1,7 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useState, useTransition } from "react";
-import { Plus, FileText, MessageCircle, CheckCircle2, HandCoins } from "lucide-react";
+import { Plus, FileText, Printer, MessageCircle, CheckCircle2, HandCoins } from "lucide-react";
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+} from "recharts";
 import { SearchBar, FilterPill } from "@/components/ui/search-bar";
 import { Pagination } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
@@ -24,7 +33,7 @@ import {
   sendFeeReminderAction,
   waiveFeeAction,
 } from "@/app/actions/fees";
-import { downloadReceipt } from "@/lib/receipt-pdf";
+import { downloadReceipt, printReceipt } from "@/lib/receipt-pdf";
 import { useToast } from "@/components/providers/toast-provider";
 import { cn } from "@/lib/utils";
 
@@ -66,6 +75,12 @@ type PageData = {
     overdueCount: number;
     collectionRate: number;
   };
+  collections: {
+    today: number;
+    week: number;
+    month: number;
+  };
+  trend: { month: string; collected: number }[];
 };
 
 type PaymentForm = {
@@ -94,7 +109,13 @@ const emptyForm: PaymentForm = {
   remarks: "",
 };
 
-export function FeesModule({ initialMonth }: { initialMonth: string }) {
+export function FeesModule({
+  initialMonth,
+  receiptFooter = "",
+}: {
+  initialMonth: string;
+  receiptFooter?: string;
+}) {
   const { toast } = useToast();
   const [pending, startTransition] = useTransition();
   const [q, setQ] = useState("");
@@ -225,7 +246,7 @@ export function FeesModule({ initialMonth }: { initialMonth: string }) {
   };
 
   const downloadReceiptFor = (fee: FeeRow) => {
-    downloadReceipt({
+    const payload = {
       receiptNumber: fee.receiptNumber ?? `RCP-${fee.id.slice(0, 8)}`,
       studentName: fee.student.fullName,
       studentId: fee.student.studentId,
@@ -237,25 +258,78 @@ export function FeesModule({ initialMonth }: { initialMonth: string }) {
       balance: fee.balance,
       paymentMethod: fee.paymentMethod,
       paymentDate: fee.paymentDate ? new Date(fee.paymentDate).toLocaleDateString("en-GB") : null,
-    });
+      footerText: receiptFooter || null,
+    };
+    downloadReceipt(payload);
     toast("Receipt downloaded", "success");
+  };
+
+  const printReceiptFor = (fee: FeeRow) => {
+    printReceipt({
+      receiptNumber: fee.receiptNumber ?? `RCP-${fee.id.slice(0, 8)}`,
+      studentName: fee.student.fullName,
+      studentId: fee.student.studentId,
+      guardianName: fee.student.guardianName,
+      month: fee.month,
+      monthlyFee: fee.monthlyFee,
+      discount: fee.discount,
+      paidAmount: fee.paidAmount,
+      balance: fee.balance,
+      paymentMethod: fee.paymentMethod,
+      paymentDate: fee.paymentDate ? new Date(fee.paymentDate).toLocaleDateString("en-GB") : null,
+      footerText: receiptFooter || null,
+    });
+    toast("Opening print dialog…", "info");
   };
 
   return (
     <div className="space-y-5">
       {/* Summary */}
       {data && (
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <StatCard label="Collected" value={formatMoney(data.summary.totalCollected)} tone="green" />
-          <StatCard label="Due" value={formatMoney(data.summary.totalDue)} tone={data.summary.totalDue > 0 ? "red" : "green"} />
-          <StatCard
-            label="Overdue"
-            value={formatMoney(data.summary.overdue)}
-            sub={data.summary.overdueCount > 0 ? `${data.summary.overdueCount} records` : undefined}
-            tone={data.summary.overdue > 0 ? "red" : "green"}
-          />
-          <StatCard label="Collection %" value={`${data.summary.collectionRate}%`} tone="navy" />
-        </div>
+        <>
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+            <StatCard label="Collected" value={formatMoney(data.summary.totalCollected)} tone="green" />
+            <StatCard label="Due" value={formatMoney(data.summary.totalDue)} tone={data.summary.totalDue > 0 ? "red" : "green"} />
+            <StatCard
+              label="Overdue"
+              value={formatMoney(data.summary.overdue)}
+              sub={data.summary.overdueCount > 0 ? `${data.summary.overdueCount} records` : undefined}
+              tone={data.summary.overdue > 0 ? "red" : "green"}
+            />
+            <StatCard label="Collection %" value={`${data.summary.collectionRate}%`} tone="navy" />
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <StatCard label="Today's collection" value={formatMoney(data.collections.today)} tone="gold" />
+            <StatCard label="This week" value={formatMoney(data.collections.week)} tone="gold" />
+            <StatCard label="This month" value={formatMoney(data.collections.month)} tone="gold" />
+          </div>
+          {data.trend.length > 0 && (
+            <div className="rounded-2xl border border-border bg-card p-5">
+              <p className="mb-3 text-sm font-bold uppercase tracking-wide text-muted">
+                Monthly collection — last 6 months
+              </p>
+              <div className="h-52">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={data.trend} margin={{ top: 5, right: 5, left: -15, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                    <XAxis
+                      dataKey="month"
+                      tick={{ fontSize: 11 }}
+                      tickFormatter={(m: string) => m.slice(2)}
+                    />
+                    <YAxis tick={{ fontSize: 11 }} />
+                    <Tooltip
+                      formatter={(v) => [formatMoney(Number(v)), "Collected"]}
+                      labelFormatter={(l) => formatMonth(String(l))}
+                      contentStyle={{ borderRadius: 12, fontSize: 12 }}
+                    />
+                    <Bar dataKey="collected" fill="var(--gold)" radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       <div className="flex flex-wrap items-center gap-3">
@@ -374,13 +448,22 @@ export function FeesModule({ initialMonth }: { initialMonth: string }) {
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
                         {fee.paidAmount > 0 && fee.receiptNumber && (
-                          <button
-                            title="Download receipt"
-                            onClick={() => downloadReceiptFor(fee)}
-                            className="rounded-lg p-2 text-muted transition hover:bg-surface-alt hover:text-foreground"
-                          >
-                            <FileText className="h-4 w-4" />
-                          </button>
+                          <>
+                            <button
+                              title="Download receipt PDF"
+                              onClick={() => downloadReceiptFor(fee)}
+                              className="rounded-lg p-2 text-muted transition hover:bg-surface-alt hover:text-foreground"
+                            >
+                              <FileText className="h-4 w-4" />
+                            </button>
+                            <button
+                              title="Print receipt"
+                              onClick={() => printReceiptFor(fee)}
+                              className="rounded-lg p-2 text-muted transition hover:bg-surface-alt hover:text-foreground"
+                            >
+                              <Printer className="h-4 w-4" />
+                            </button>
+                          </>
                         )}
                         {fee.balance > 0 && (
                           <>

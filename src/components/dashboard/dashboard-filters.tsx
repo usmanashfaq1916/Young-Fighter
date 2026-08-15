@@ -11,6 +11,7 @@ export type DashboardFilterValues = {
   month?: string;
   batchId?: string;
   coachId?: string;
+  studentStatus?: string;
 };
 
 export function DashboardFilters({
@@ -27,26 +28,30 @@ export function DashboardFilters({
   const [month, setMonth] = useState(current.month ?? "");
   const [batchId, setBatchId] = useState(current.batchId ?? "");
   const [coachId, setCoachId] = useState(current.coachId ?? "");
+  const [studentStatus, setStudentStatus] = useState(current.studentStatus ?? "ALL");
 
   const apply = useCallback(() => {
     const params = new URLSearchParams(searchParams.toString());
     params.delete("month");
     params.delete("batch");
     params.delete("coach");
+    params.delete("status");
     if (month) params.set("month", month);
     if (batchId) params.set("batch", batchId);
     if (coachId) params.set("coach", coachId);
+    if (studentStatus !== "ALL") params.set("status", studentStatus);
     router.replace(`/dashboard?${params.toString()}`);
-  }, [month, batchId, coachId, router, searchParams]);
+  }, [month, batchId, coachId, studentStatus, router, searchParams]);
 
   const clear = useCallback(() => {
     setMonth("");
     setBatchId("");
     setCoachId("");
+    setStudentStatus("ALL");
     router.replace("/dashboard");
   }, [router]);
 
-  const hasActive = !!(month || batchId || coachId);
+  const hasActive = !!(month || batchId || coachId || studentStatus !== "ALL");
 
   return (
     <div className="card flex flex-wrap items-end gap-3 p-4">
@@ -74,6 +79,17 @@ export function DashboardFilters({
         options={coaches.map((c) => ({ value: c.id, label: c.fullName }))}
         placeholder="All coaches"
         className="w-44"
+      />
+      <Select
+        value={studentStatus}
+        onChange={(e) => setStudentStatus(e.target.value)}
+        options={[
+          { value: "ALL", label: "All statuses" },
+          { value: "ACTIVE", label: "Active only" },
+          { value: "INACTIVE", label: "Inactive only" },
+        ]}
+        placeholder="All statuses"
+        className="w-40"
       />
       <Button onClick={apply} size="sm">
         Apply

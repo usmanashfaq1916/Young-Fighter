@@ -124,6 +124,12 @@ enum ExpenseCategory {
   OTHER
 }
 
+enum AnnouncementPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
 enum ActivityType {
   LOGIN
   LOGOUT
@@ -190,6 +196,7 @@ model User {
   notifications    Notification[]
   resetTokens      PasswordResetToken[]
   pushSubscriptions PushSubscription[]
+  uploadedDocuments Document[]      @relation("DocumentUploader")
 
   @@index([role, status])
   @@index([studentId])
@@ -210,6 +217,7 @@ model Batch {
   students         Student[]
   sessions         TrainingSession[]
   admissions       Admission[]
+  announcements    Announcement[]
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
@@ -257,6 +265,7 @@ model Student {
   matchRecords MatchRecord[]
   goals        Goal[]
   trainingRecords TrainingSessionRecord[]
+  documents    Document[]
 
   @@index([batchId, status])
   @@index([coachId])
@@ -503,19 +512,35 @@ model MatchRecord {
 }
 
 model Expense {
-  id        String         @id @default(cuid())
-  title     String
-  category  ExpenseCategory
-  amount    Int
-  date      DateTime       @db.Date
-  notes     String?
-  createdBy String
-  updatedBy String?
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
+  id            String        @id @default(cuid())
+  title         String
+  category      ExpenseCategory
+  amount        Int
+  date          DateTime      @db.Date
+  paymentMethod PaymentMethod?
+  notes         String?
+  createdBy     String
+  updatedBy     String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
   @@index([date, category])
   @@index([category])
+}
+
+model Document {
+  id         String   @id @default(cuid())
+  studentId  String
+  student    Student  @relation(fields: [studentId], references: [id])
+  title      String
+  type       String?
+  url        String
+  uploadedBy String
+  uploader   User     @relation("DocumentUploader", fields: [uploadedBy], references: [id])
+  createdAt  DateTime @default(now())
+
+  @@index([studentId])
+  @@index([uploadedBy])
 }
 
 model Activity {
@@ -549,14 +574,18 @@ model Notification {
 }
 
 model Announcement {
-  id        String   @id @default(cuid())
+  id        String              @id @default(cuid())
   title     String
   body      String
-  audience  String   @default("ALL")
+  audience  String              @default("ALL")
+  priority  AnnouncementPriority @default(MEDIUM)
+  batchId   String?
+  batch     Batch?              @relation(fields: [batchId], references: [id])
   createdBy String
-  createdAt DateTime @default(now())
+  createdAt DateTime            @default(now())
 
   @@index([createdAt])
+  @@index([batchId])
 }
 
 model PasswordResetToken {

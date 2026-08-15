@@ -73,6 +73,7 @@ export async function AdminDashboard({
           month: filters.month,
           batchId: filters.batchId,
           coachId: filters.coachId,
+          studentStatus: filters.studentStatus,
         }}
       />
 

@@ -15,7 +15,7 @@ export default async function StudentsPage() {
     deletedAt: null,
   };
 
-  const [students, total, batches] = await Promise.all([
+  const [students, total, batches, coaches] = await Promise.all([
     db.student.findMany({
       where,
       orderBy: { fullName: "asc" },
@@ -37,6 +37,11 @@ export default async function StudentsPage() {
     }),
     db.student.count({ where }),
     db.batch.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    db.user.findMany({
+      where: { role: "COACH", status: "ACTIVE" },
+      select: { id: true, fullName: true },
+      orderBy: { fullName: "asc" },
+    }),
   ]);
 
   return (
@@ -46,7 +51,7 @@ export default async function StudentsPage() {
         description="Manage student registrations, profiles and academy details."
       />
       <StudentTable
-        initial={{ students, batches, total, page: 1, pageSize: 10, pages: Math.max(1, Math.ceil(total / 10)) }}
+        initial={{ students, batches, coaches, total, page: 1, pageSize: 10, pages: Math.max(1, Math.ceil(total / 10)) }}
         role={user.role}
       />
     </div>

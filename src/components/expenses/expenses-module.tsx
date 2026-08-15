@@ -2,6 +2,15 @@
 
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { Plus, Pencil, Trash2, Wallet } from "lucide-react";
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+} from "recharts";
 import { FilterPill } from "@/components/ui/search-bar";
 import { Pagination } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +21,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Modal } from "@/components/ui/modal";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { formatDate, formatMoney } from "@/lib/utils";
-import { expenseCategoryLabel, EXPENSE_CATEGORIES } from "@/lib/constants";
+import {
+  expenseCategoryLabel,
+  EXPENSE_CATEGORIES,
+  PAYMENT_METHODS,
+  paymentMethodLabel,
+} from "@/lib/constants";
 import {
   addExpenseAction,
   updateExpenseAction,
@@ -26,6 +40,7 @@ type ExpenseRow = {
   category: string;
   amount: number;
   date: string;
+  paymentMethod: string | null;
   notes: string | null;
 };
 
@@ -34,6 +49,7 @@ type FormState = {
   category: string;
   amount: number;
   date: string;
+  paymentMethod: string;
   notes: string;
 };
 
@@ -42,6 +58,7 @@ const defaultForm: FormState = {
   category: "EQUIPMENT",
   amount: 0,
   date: new Date().toISOString().slice(0, 10),
+  paymentMethod: "CASH",
   notes: "",
 };
 
@@ -57,6 +74,7 @@ export function ExpensesModule() {
     pages: number;
     byCategory: { category: string; _sum: { amount: number | null }; _count: { _all: number } }[];
     totals: { amount: number; count: number };
+    trend: { month: string; amount: number }[];
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -97,6 +115,7 @@ export function ExpensesModule() {
       category: e.category,
       amount: e.amount,
       date: e.date.slice(0, 10),
+      paymentMethod: e.paymentMethod ?? "",
       notes: e.notes ?? "",
     });
     setShowForm(true);
@@ -183,21 +202,32 @@ export function ExpensesModule() {
           </div>
           <div className="rounded-2xl border border-border bg-card p-5">
             <h3 className="mb-4 text-sm font-bold uppercase tracking-wide text-muted">
-              Category Breakdown
+              Monthly spending — last 6 months
             </h3>
-            <div className="grid grid-cols-2 gap-3">
-              {data.byCategory
-                .sort((a, b) => (b._sum.amount ?? 0) - (a._sum.amount ?? 0))
-                .slice(0, 6)
-                .map((c) => (
-                  <div key={c.category} className="rounded-xl bg-surface-alt p-3">
-                    <p className="text-xs text-muted">{expenseCategoryLabel[c.category]}</p>
-                    <p className="mt-1 text-lg font-black">
-                      {formatMoney(c._sum.amount ?? 0)}
-                    </p>
-                    <p className="text-xs text-muted">{c._count._all} entries</p>
-                  </div>
-                ))}
+            <div className="h-48">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={data.trend} margin={{ top: 5, right: 5, left: -15, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis
+                    dataKey="month"
+                    tick={{ fontSize: 11 }}
+                    tickFormatter={(m: string) => m.slice(2)}
+                  />
+                  <YAxis tick={{ fontSize: 11 }} />
+                  <Tooltip
+                    formatter={(v) => [formatMoney(Number(v)), "Spent"]}
+                    labelFormatter={(l) => String(l)}
+                    contentStyle={{ borderRadius: 12, fontSize: 12 }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="amount"
+                    stroke="var(--gold)"
+                    fill="var(--gold)"
+                    fillOpacity={0.15}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
           </div>
         </div>
@@ -225,7 +255,8 @@ export function ExpensesModule() {
                   <th className="hidden px-4 py-3 font-semibold sm:table-cell">Category</th>
                   <th className="hidden px-4 py-3 font-semibold md:table-cell">Date</th>
                   <th className="px-4 py-3 font-semibold">Amount</th>
-                  <th className="hidden px-4 py-3 font-semibold lg:table-cell">Notes</th>
+                  <th className="hidden px-4 py-3 font-semibold lg:table-cell">Method</th>
+                  <th className="hidden px-4 py-3 font-semibold xl:table-cell">Notes</th>
                   <th className="px-4 py-3 text-right font-semibold">Actions</th>
                 </tr>
               </thead>
@@ -242,7 +273,10 @@ export function ExpensesModule() {
                     <td className="px-4 py-3 font-medium text-danger">
                       {formatMoney(e.amount)}
                     </td>
-                    <td className="hidden max-w-52 truncate px-4 py-3 text-muted lg:table-cell">
+                    <td className="hidden px-4 py-3 text-muted lg:table-cell">
+                      {e.paymentMethod ? paymentMethodLabel[e.paymentMethod] : "—"}
+                    </td>
+                    <td className="hidden max-w-52 truncate px-4 py-3 text-muted xl:table-cell">
                       {e.notes ?? "—"}
                     </td>
                     <td className="px-4 py-3">
@@ -327,6 +361,21 @@ export function ExpensesModule() {
                 value={form.date}
                 onChange={(e) => setForm({ ...form, date: e.target.value })}
               />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted">Payment method</span>
+              <select
+                className="input"
+                value={form.paymentMethod}
+                onChange={(e) => setForm({ ...form, paymentMethod: e.target.value })}
+              >
+                <option value="">Not recorded</option>
+                {PAYMENT_METHODS.map((m) => (
+                  <option key={m} value={m}>
+                    {paymentMethodLabel[m]}
+                  </option>
+                ))}
+              </select>
             </label>
             <label className="flex flex-col gap-1.5">
               <span className="text-xs font-semibold uppercase tracking-wide text-muted">Notes</span>

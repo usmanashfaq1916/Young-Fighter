@@ -85,6 +85,26 @@ export async function GET(request: NextRequest) {
     perfByStudent[p.studentId].push(p.overallRating);
   }
 
+  const studentById = new Map(students.map((s) => [s.id, s]));
+  const byDate = new Map<string, { PRESENT: number; ABSENT: number; LATE: number; EXCUSED: number; LEAVE: number }>();
+  const byBatch = new Map<string, { PRESENT: number; ABSENT: number; LATE: number; EXCUSED: number; LEAVE: number }>();
+  for (const a of attendance) {
+    const dk = a.date.toISOString().slice(0, 10);
+    const b = byDate.get(dk) ?? { PRESENT: 0, ABSENT: 0, LATE: 0, EXCUSED: 0, LEAVE: 0 };
+    b[a.status as keyof typeof b]++;
+    byDate.set(dk, b);
+
+    const student = studentById.get(a.studentId);
+    const batchName = student?.batch?.name ?? "Unassigned";
+    const bb = byBatch.get(batchName) ?? { PRESENT: 0, ABSENT: 0, LATE: 0, EXCUSED: 0, LEAVE: 0 };
+    bb[a.status as keyof typeof bb]++;
+    byBatch.set(batchName, bb);
+  }
+  const attendanceReport = {
+    byDate: [...byDate.entries()].sort((x, y) => x[0].localeCompare(y[0])).map(([date, c]) => ({ date, ...c })),
+    byBatch: [...byBatch.entries()].map(([batch, c]) => ({ batch, ...c })),
+  };
+
   const totalCollected = fees.reduce((s, f) => s + f.paidAmount, 0);
   const totalDue = fees.reduce((s, f) => s + f.balance, 0);
   const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
@@ -119,5 +139,6 @@ export async function GET(request: NextRequest) {
     })),
     expenses: isAdmin ? expenses : [],
     matches,
+    attendanceReport,
   });
 }

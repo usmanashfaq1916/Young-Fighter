@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
   const skill = searchParams.get("skill") ?? "";
   const status = searchParams.get("status") ?? "";
   const gender = searchParams.get("gender") ?? "";
+  const coach = searchParams.get("coach") ?? "";
   const sort = SORTS[searchParams.get("sort") ?? "name"] ?? SORTS.name;
   const page = Math.max(1, Number(searchParams.get("page") ?? 1));
   const pageSize = Math.min(50, Math.max(5, Number(searchParams.get("pageSize") ?? 10)));
@@ -45,8 +46,9 @@ export async function GET(request: NextRequest) {
   if (skill) where.skillLevel = skill as never;
   if (status) where.status = status as never;
   if (gender) where.gender = gender as never;
+  if (coach) where.coachId = coach;
 
-  const [total, students, batches] = await Promise.all([
+  const [total, students, batches, coaches] = await Promise.all([
     db.student.count({ where }),
     db.student.findMany({
       where,
@@ -69,6 +71,11 @@ export async function GET(request: NextRequest) {
       },
     }),
     db.batch.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    db.user.findMany({
+      where: { role: "COACH", status: "ACTIVE" },
+      select: { id: true, fullName: true },
+      orderBy: { fullName: "asc" },
+    }),
   ]);
 
   const isAdmin = user.role === "ADMIN";
@@ -79,6 +86,7 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     students: scopedStudents,
     batches,
+    coaches,
     total,
     page,
     pageSize,

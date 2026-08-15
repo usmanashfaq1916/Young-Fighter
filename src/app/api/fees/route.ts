@@ -20,6 +20,11 @@ export async function GET(request: NextRequest) {
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay());
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const trendFrom = new Date(now.getFullYear(), now.getMonth() - 5, 1);
 
   const studentWhere: Prisma.StudentWhereInput = {
     ...studentScopeWhere(user),
@@ -48,7 +53,7 @@ export async function GET(request: NextRequest) {
     };
   }
 
-  const [fees, total, summary, overdueAgg] = await Promise.all([
+  const [fees, total, summary, overdueAgg, todayAgg, weekAgg, monthAgg, trendFees] = await Promise.all([
     db.fee.findMany({
       where,
       orderBy: [{ month: "desc" }, { student: { fullName: "asc" } }],
@@ -84,10 +89,39 @@ export async function GET(request: NextRequest) {
       _sum: { balance: true },
       _count: { _all: true },
     }),
+    db.fee.aggregate({
+      where: { student: studentWhere, paymentDate: { gte: todayStart } },
+      _sum: { paidAmount: true },
+    }),
+    db.fee.aggregate({
+      where: { student: studentWhere, paymentDate: { gte: weekStart } },
+      _sum: { paidAmount: true },
+    }),
+    db.fee.aggregate({
+      where: { student: studentWhere, paymentDate: { gte: monthStart } },
+      _sum: { paidAmount: true },
+    }),
+    db.fee.findMany({
+      where: { student: studentWhere, paymentDate: { gte: trendFrom } },
+      select: { paidAmount: true, paymentDate: true },
+    }),
   ]);
 
   const collected = summary._sum.paidAmount ?? 0;
   const expected = summary._sum.monthlyFee ?? 0;
+
+  const monthMap = new Map<string, number>();
+  for (const f of trendFees) {
+    if (!f.paymentDate) continue;
+    const key = `${f.paymentDate.getFullYear()}-${String(f.paymentDate.getMonth() + 1).padStart(2, "0")}`;
+    monthMap.set(key, (monthMap.get(key) ?? 0) + f.paidAmount);
+  }
+  const trend: { month: string; collected: number }[] = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    trend.push({ month: key, collected: monthMap.get(key) ?? 0 });
+  }
 
   return NextResponse.json({
     fees: fees.map((f) => ({
@@ -107,5 +141,11 @@ export async function GET(request: NextRequest) {
       overdueCount: overdueAgg._count._all,
       collectionRate: expected > 0 ? Math.round((collected / expected) * 100) : 0,
     },
+    collections: {
+      today: todayAgg._sum.paidAmount ?? 0,
+      week: weekAgg._sum.paidAmount ?? 0,
+      month: monthAgg._sum.paidAmount ?? 0,
+    },
+    trend,
   });
 }

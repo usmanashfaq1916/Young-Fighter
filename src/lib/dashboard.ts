@@ -8,6 +8,7 @@ export type DashboardFilters = {
   batchId?: string;
   coachId?: string;
   month?: string;
+  studentStatus?: string;
 };
 
 export type DashboardStats = {
@@ -39,6 +40,9 @@ function scopedWhere(user: SessionUser, filters: DashboardFilters) {
   const scope = studentScopeWhere(user);
   if (filters.batchId) scope.batchId = filters.batchId;
   if (filters.coachId) scope.coachId = filters.coachId;
+  if (filters.studentStatus && filters.studentStatus !== "ALL") {
+    scope.status = filters.studentStatus as never;
+  }
   return scope;
 }
 

@@ -10,7 +10,15 @@ export default async function SettingsPage() {
 
   const [batches, coaches, settings] = await Promise.all([
     db.batch.findMany({
-      include: { coach: { select: { fullName: true } }, _count: { select: { students: true } } },
+      include: {
+        coach: { select: { fullName: true } },
+        _count: { select: { students: true } },
+        students: {
+          where: { deletedAt: null },
+          select: { id: true, fullName: true, studentId: true, status: true },
+          orderBy: { fullName: "asc" },
+        },
+      },
       orderBy: { name: "asc" },
     }),
     user.role === "ADMIN"

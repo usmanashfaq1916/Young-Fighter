@@ -194,6 +194,7 @@ export const expenseSchema = z.object({
     .min(0, { error: "Amount cannot be negative." })
     .max(100_000_000),
   date: z.coerce.date({ error: "Please select a valid date." }),
+  paymentMethod: z.enum(PAYMENT_METHODS).optional().nullable(),
   notes: z.string().max(500).optional().or(z.literal("")),
 });
 

@@ -21,6 +21,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { setStudentStatusAction } from "@/app/actions/students";
+import { DocumentsTab } from "@/components/students/documents-tab";
 import { generateQrDataUrl, studentQrContent } from "@/lib/qr";
 import {
   formatMoney,
@@ -72,11 +73,13 @@ type Props = {
   goals: any[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   training: any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  documents: any[];
   role: string;
   initialTab?: string;
 };
 
-const TABS = ["profile", "attendance", "fees", "performance", "matches", "training", "goals", "qr"] as const;
+const TABS = ["profile", "attendance", "fees", "performance", "matches", "training", "goals", "documents", "qr"] as const;
 export function StudentProfile({
   student,
   attendanceSummary,
@@ -87,6 +90,7 @@ export function StudentProfile({
   upcomingDues,
   goals,
   training,
+  documents,
   role,
   initialTab,
 }: Props) {
@@ -910,6 +914,10 @@ export function StudentProfile({
               </div>
             )}
           </div>
+        )}
+
+        {tab === "documents" && (
+          <DocumentsTab studentId={student.id} documents={documents} />
         )}
 
         {tab === "qr" && (

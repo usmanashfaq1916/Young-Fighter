@@ -17,6 +17,7 @@ type ReceiptData = {
   paymentMethod?: string | null;
   paymentDate?: string | null;
   remarks?: string | null;
+  footerText?: string | null;
 };
 
 function methodLabel(method?: string | null): string {
@@ -94,7 +95,9 @@ export function buildReceiptPdf(data: ReceiptData): jsPDF {
   doc.setFontSize(9);
   doc.setTextColor(11, 31, 58);
   doc.text(
-    `Thank you for your payment. This is a computer-generated receipt from ${ACADEMY_NAME}.`,
+    data.footerText
+      ? data.footerText
+      : `Thank you for your payment. This is a computer-generated receipt from ${ACADEMY_NAME}.`,
     14,
     finalY + 20
   );

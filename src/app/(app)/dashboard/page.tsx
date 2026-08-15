@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "Dashboard" };
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ month?: string; batch?: string; coach?: string }>;
+  searchParams: Promise<{ month?: string; batch?: string; coach?: string; status?: string }>;
 }) {
   const user = await requireRole("ADMIN", "COACH");
   const params = await searchParams;
@@ -29,6 +29,7 @@ export default async function DashboardPage({
     month: params.month,
     batchId: params.batch,
     coachId: params.coach,
+    studentStatus: params.status,
   };
 
   return (

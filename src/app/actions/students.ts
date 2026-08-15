@@ -42,6 +42,32 @@ export async function searchStudents(query: string) {
   });
 }
 
+async function assertBatchSlot(
+  batchId: string | undefined | null,
+  studentStatus: string,
+  excludeStudentId?: string
+): Promise<string | null> {
+  if (!batchId) return null;
+  const batch = await db.batch.findUnique({ where: { id: batchId } });
+  if (!batch) return "Selected batch not found.";
+  if (!batch.isActive) return "Cannot assign a student to an inactive batch.";
+  if (studentStatus === "INACTIVE") return "Inactive students cannot be assigned to an active batch.";
+  if (batch.capacity > 0) {
+    const count = await db.student.count({
+      where: {
+        batchId,
+        deletedAt: null,
+        status: "ACTIVE",
+        ...(excludeStudentId ? { id: { not: excludeStudentId } } : {}),
+      },
+    });
+    if (count >= batch.capacity) {
+      return `Batch "${batch.name}" is at full capacity (${count}/${batch.capacity}).`;
+    }
+  }
+  return null;
+}
+
 export async function createStudentAction(input: {
   fullName: string;
   guardianName: string;
@@ -78,6 +104,9 @@ export async function createStudentAction(input: {
       return { ok: false as const, error: "Invalid student data.", fieldErrors: parsed.error.flatten().fieldErrors };
     }
     const data = parsed.data;
+
+    const batchError = await assertBatchSlot(data.batchId, data.status);
+    if (batchError) return { ok: false as const, error: batchError };
 
     const existingIds = await db.student.findMany({ select: { studentId: true } });
     const maxId = existingIds.reduce(
@@ -211,6 +240,9 @@ export async function updateStudentAction(
     }
     const data = parsed.data;
 
+    const batchError = await assertBatchSlot(data.batchId, data.status, id);
+    if (batchError) return { ok: false as const, error: batchError };
+
     const existing = await db.student.findUnique({ where: { id } });
     if (!existing) return { ok: false as const, error: "Student not found." };
 
@@ -281,6 +313,28 @@ export async function setStudentStatusAction(id: string, status: "ACTIVE" | "INA
 
   const student = await db.student.findUnique({ where: { id } });
   if (!student) return { ok: false as const, error: "Student not found." };
+
+  if (status === "INACTIVE" && student.batchId) {
+    const batchError = await assertBatchSlot(student.batchId, "INACTIVE");
+    if (batchError) {
+      await db.student.update({
+        where: { id },
+        data: { status, batchId: null, updatedBy: user.id },
+      });
+      await logActivity({
+        userId: user.id,
+        type: "STUDENT_DEACTIVATED",
+        action: "Student deactivated and removed from batch",
+        entity: "student",
+        entityId: id,
+        details: student.fullName,
+      });
+      revalidatePath("/students");
+      revalidatePath(`/students/${id}`);
+      revalidatePath("/dashboard");
+      return { ok: true as const };
+    }
+  }
 
   await db.student.update({
     where: { id },
