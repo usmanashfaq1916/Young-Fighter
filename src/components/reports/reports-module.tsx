@@ -48,6 +48,31 @@ type ReportData = {
     result: string | null;
     records: { student: { id: string; fullName: string; studentId: string }; runs: number; wickets: number }[];
   }[];
+  batches: { id: string; name: string }[];
+  feeRecords: {
+    studentId: string;
+    fullName: string;
+    batch: string | null;
+    month: string;
+    monthlyFee: number;
+    discount: number;
+    paidAmount: number;
+    balance: number;
+    status: string;
+  }[];
+  performanceRecords: {
+    studentId: string;
+    fullName: string;
+    batch: string | null;
+    date: string;
+    overallRating: number;
+    battingRating: number;
+    bowlingRating: number;
+    fieldingRating: number;
+    fitnessRating: number;
+    disciplineRating: number;
+    remarks: string | null;
+  }[];
 };
 
 export function ReportsModule({ role }: { role: string }) {
@@ -56,6 +81,7 @@ export function ReportsModule({ role }: { role: string }) {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [month, setMonth] = useState(currentMonth());
+  const [batch, setBatch] = useState("");
   const [data, setData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -65,6 +91,7 @@ export function ReportsModule({ role }: { role: string }) {
     if (from) params.set("from", from);
     if (to) params.set("to", to);
     if (month) params.set("month", month);
+    if (batch) params.set("batch", batch);
     try {
       const res = await fetch(`/api/reports?${params}`, { cache: "no-store" });
       if (res.ok) setData(await res.json());
@@ -72,7 +99,7 @@ export function ReportsModule({ role }: { role: string }) {
     } finally {
       setLoading(false);
     }
-  }, [from, to, month, toast]);
+  }, [from, to, month, batch, toast]);
 
   useEffect(() => {
     const t = setTimeout(() => void load(), 0);
@@ -230,6 +257,78 @@ export function ReportsModule({ role }: { role: string }) {
     toast("Students report downloaded (CSV)", "success");
   };
 
+  const exportAttendanceExcel = () => {
+    if (!data) return;
+    const columns: ExcelColumn<(typeof data.attendanceReport.byDate)[number]>[] = [
+      { header: "Date", key: "date", accessor: (r) => r.date },
+      { header: "Present", key: "present", accessor: (r) => r.PRESENT },
+      { header: "Absent", key: "absent", accessor: (r) => r.ABSENT },
+      { header: "Late", key: "late", accessor: (r) => r.LATE },
+      { header: "Excused", key: "excused", accessor: (r) => r.EXCUSED },
+      { header: "Leave", key: "leave", accessor: (r) => r.LEAVE },
+    ];
+    exportToExcel(data.attendanceReport.byDate, columns, `attendance-daily-${month}`);
+    void logReportExportAction("EXCEL", `attendance daily ${month}`);
+    toast("Daily attendance report downloaded (Excel)", "success");
+  };
+
+  const exportFeesExcel = () => {
+    if (!data) return;
+    const columns: ExcelColumn<(typeof data.feeRecords)[number]>[] = [
+      { header: "Student ID", key: "studentId", accessor: (r) => r.studentId },
+      { header: "Name", key: "fullName", accessor: (r) => r.fullName },
+      { header: "Batch", key: "batch", accessor: (r) => r.batch ?? "" },
+      { header: "Month", key: "month", accessor: (r) => r.month },
+      { header: "Monthly Fee", key: "monthlyFee", accessor: (r) => r.monthlyFee },
+      { header: "Discount", key: "discount", accessor: (r) => r.discount },
+      { header: "Paid", key: "paidAmount", accessor: (r) => r.paidAmount },
+      { header: "Balance", key: "balance", accessor: (r) => r.balance },
+      { header: "Status", key: "status", accessor: (r) => r.status },
+    ];
+    exportToExcel(data.feeRecords, columns, `fees-report-${month}`);
+    void logReportExportAction("EXCEL", `fees ${month}`);
+    toast("Fees report downloaded (Excel)", "success");
+  };
+
+  const exportPerformanceExcel = () => {
+    if (!data) return;
+    const columns: ExcelColumn<(typeof data.performanceRecords)[number]>[] = [
+      { header: "Student ID", key: "studentId", accessor: (r) => r.studentId },
+      { header: "Name", key: "fullName", accessor: (r) => r.fullName },
+      { header: "Batch", key: "batch", accessor: (r) => r.batch ?? "" },
+      { header: "Date", key: "date", accessor: (r) => formatDate(r.date) },
+      { header: "Overall", key: "overallRating", accessor: (r) => r.overallRating },
+      { header: "Batting", key: "battingRating", accessor: (r) => r.battingRating },
+      { header: "Bowling", key: "bowlingRating", accessor: (r) => r.bowlingRating },
+      { header: "Fielding", key: "fieldingRating", accessor: (r) => r.fieldingRating },
+      { header: "Fitness", key: "fitnessRating", accessor: (r) => r.fitnessRating },
+      { header: "Discipline", key: "disciplineRating", accessor: (r) => r.disciplineRating },
+      { header: "Remarks", key: "remarks", accessor: (r) => r.remarks ?? "" },
+    ];
+    exportToExcel(data.performanceRecords, columns, `performance-report-${month}`);
+    void logReportExportAction("EXCEL", `performance ${month}`);
+    toast("Performance report downloaded (Excel)", "success");
+  };
+
+  const exportRankingsExcel = () => {
+    if (!data) return;
+    const ranked = [...data.studentStats]
+      .sort((a, b) => b.avgRating - a.avgRating)
+      .map((r, i) => ({ ...r, rank: i + 1 }));
+    const columns: ExcelColumn<(typeof ranked)[number]>[] = [
+      { header: "Rank", key: "rank", accessor: (r) => r.rank },
+      { header: "Student ID", key: "studentId", accessor: (r) => r.studentId },
+      { header: "Name", key: "name", accessor: (r) => r.fullName },
+      { header: "Batch", key: "batch", accessor: (r) => r.batch ?? "" },
+      { header: "Avg Rating", key: "rating", accessor: (r) => Number(r.avgRating.toFixed(2)) },
+      { header: "Assessments", key: "count", accessor: (r) => r.performanceCount },
+      { header: "Present", key: "present", accessor: (r) => r.attendance.PRESENT },
+    ];
+    exportToExcel(ranked, columns, `rankings-report-${month}`);
+    void logReportExportAction("EXCEL", `rankings ${month}`);
+    toast("Rankings report downloaded (Excel)", "success");
+  };
+
   const exportAttendanceCsv = () => {
     if (!data) return;
     const columns: ExcelColumn<(typeof data.attendanceReport.byDate)[number]>[] = [
@@ -298,6 +397,17 @@ export function ReportsModule({ role }: { role: string }) {
           <span className="text-xs font-semibold uppercase tracking-wide text-muted">Fee Month</span>
           <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="input" />
         </label>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-xs font-semibold uppercase tracking-wide text-muted">Batch</span>
+          <select value={batch} onChange={(e) => setBatch(e.target.value)} className="input min-w-40">
+            <option value="">All batches</option>
+            {data?.batches.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+              </option>
+            ))}
+          </select>
+        </label>
         <Button variant="secondary" onClick={() => void load()}>
           <RefreshCw className="h-4 w-4" /> Refresh
         </Button>
@@ -316,6 +426,20 @@ export function ReportsModule({ role }: { role: string }) {
           <Button variant="outline" onClick={exportMatchesExcel}>
             <FileSpreadsheet className="h-4 w-4" /> Matches
           </Button>
+          <Button variant="outline" onClick={exportAttendanceExcel}>
+            <FileSpreadsheet className="h-4 w-4" /> Attendance
+          </Button>
+          <Button variant="outline" onClick={exportPerformanceExcel}>
+            <FileSpreadsheet className="h-4 w-4" /> Performance
+          </Button>
+          <Button variant="outline" onClick={exportRankingsExcel}>
+            <FileSpreadsheet className="h-4 w-4" /> Rankings
+          </Button>
+          {isAdmin && (
+            <Button variant="outline" onClick={exportFeesExcel}>
+              <FileSpreadsheet className="h-4 w-4" /> Fees
+            </Button>
+          )}
           <Button variant="outline" onClick={exportAttendanceCsv}>
             <FileDown className="h-4 w-4" /> Attendance CSV
           </Button>

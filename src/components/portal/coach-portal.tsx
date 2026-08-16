@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Users, Trophy, Star, CalendarDays } from "lucide-react";
+import { Users, Trophy, Star, CalendarDays, History } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
 import { StatCard } from "@/components/ui/stat-card";
@@ -26,6 +26,8 @@ export function CoachPortal({
   todayAttendance,
   recentPerf,
   upcomingMatches,
+  attendanceHistory,
+  recentActivity,
 }: {
   user: { fullName: string };
   students: CoachStudent[];
@@ -38,6 +40,14 @@ export function CoachPortal({
     student: { fullName: string; studentId: string; photoUrl: string | null };
   }[];
   upcomingMatches: { id: string; matchDate: string; opponent: string; venue: string | null }[];
+  attendanceHistory: { date: string; present: number; total: number }[];
+  recentActivity: {
+    id: string;
+    date: string;
+    status: string;
+    createdAt: string;
+    student: { fullName: string; photoUrl: string | null; studentId: string };
+  }[];
 }) {
   const marked = todayAttendance.length;
   const present = todayAttendance.filter((a) => a.status === "PRESENT").length;
@@ -154,6 +164,59 @@ export function CoachPortal({
             <Link href="/matches" className="mt-3 inline-block text-xs font-semibold text-primary hover:underline">
               Manage matches →
             </Link>
+          </div>
+
+          <div className="rounded-2xl border border-border bg-card p-5">
+            <h3 className="mb-3 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-muted">
+              <History className="h-4 w-4 text-gold" /> Recent Activity
+            </h3>
+            {recentActivity.length === 0 ? (
+              <p className="text-sm text-muted">No recent attendance changes.</p>
+            ) : (
+              <ul className="space-y-2">
+                {recentActivity.map((a) => (
+                  <li key={a.id} className="flex items-center gap-3 rounded-xl bg-surface-alt px-3 py-2 text-sm">
+                    <Avatar src={a.student.photoUrl} name={a.student.fullName} size={28} />
+                    <span className="min-w-0 flex-1 truncate">
+                      <span className="font-medium">{a.student.fullName}</span> marked{" "}
+                      <Badge tone={a.status === "PRESENT" ? "green" : a.status === "ABSENT" ? "red" : "gold"}>
+                        {attendanceLabel[a.status]}
+                      </Badge>
+                    </span>
+                    <span className="shrink-0 text-xs text-muted">{formatDate(a.date)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <div className="rounded-2xl border border-border bg-card p-5">
+            <h3 className="mb-3 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-muted">
+              <CalendarDays className="h-4 w-4 text-gold" /> Attendance — Last 7 Days
+            </h3>
+            <ul className="flex flex-wrap gap-2">
+              {attendanceHistory.map((d) => {
+                const pct = d.total > 0 ? Math.round((d.present / d.total) * 100) : 0;
+                return (
+                  <li
+                    key={d.date}
+                    title={`${formatDate(d.date)} — ${d.present}/${d.total} present (${pct}%)`}
+                    className={`flex h-10 w-10 flex-col items-center justify-center rounded-xl text-[10px] font-bold ${
+                      d.total === 0
+                        ? "bg-surface-alt text-muted"
+                        : pct >= 75
+                          ? "bg-success/15 text-success"
+                          : pct >= 50
+                            ? "bg-gold/20 text-gold-dark dark:text-gold-light"
+                            : "bg-danger/15 text-danger"
+                    }`}
+                  >
+                    <span>{new Date(d.date).getDate()}</span>
+                    <span className="opacity-80">{d.total === 0 ? "—" : `${pct}%`}</span>
+                  </li>
+                );
+              })}
+            </ul>
           </div>
         </div>
       </div>

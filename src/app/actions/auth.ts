@@ -1,7 +1,6 @@
 "use server";
 
 import bcrypt from "bcryptjs";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { createSession, deleteSession } from "@/lib/session";
@@ -17,28 +16,7 @@ import {
   userProfileSchema,
 } from "@/lib/validation/schemas";
 import { revalidatePath } from "next/cache";
-
-const rateLimitStore = new Map<string, number[]>();
-
-function checkRateLimit(key: string): boolean {
-  const max = Number(process.env.AUTH_RATE_LIMIT_MAX ?? 10);
-  const now = Date.now();
-  const windowStart = now - 60_000;
-  const hits = (rateLimitStore.get(key) ?? []).filter((t) => t > windowStart);
-  if (hits.length >= max) return false;
-  hits.push(now);
-  rateLimitStore.set(key, hits);
-  return true;
-}
-
-async function clientKey(): Promise<string> {
-  const h = await headers();
-  return (
-    h.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    h.get("x-real-ip") ??
-    "local"
-  );
-}
+import { rateLimit, clientKey } from "@/lib/rate-limit";
 
 export type AuthResult = {
   success: boolean;
@@ -50,7 +28,7 @@ export async function loginAction(
   _prev: AuthResult | undefined,
   formData: FormData
 ): Promise<AuthResult> {
-  if (!checkRateLimit(await clientKey())) {
+  if (!rateLimit(await clientKey())) {
     return {
       success: false,
       error: "Too many attempts. Please try again later.",
@@ -123,7 +101,7 @@ export async function forgotPasswordAction(
   _prev: AuthResult | undefined,
   formData: FormData
 ): Promise<AuthResult> {
-  if (!checkRateLimit(await clientKey())) {
+  if (!rateLimit(await clientKey())) {
     return {
       success: false,
       error: "Too many attempts. Please try again later.",
@@ -176,6 +154,12 @@ export async function resetPasswordAction(
   _prev: AuthResult | undefined,
   formData: FormData
 ): Promise<AuthResult> {
+  if (!rateLimit(await clientKey(), { max: 5, windowMs: 60_000 })) {
+    return {
+      success: false,
+      error: "Too many attempts. Please try again later.",
+    };
+  }
   const token = formData.get("token") as string;
   const parsed = resetPasswordSchema.safeParse({
     password: formData.get("password"),
@@ -242,6 +226,12 @@ export async function changePasswordAction(input: {
   confirm: string;
 }): Promise<AuthResult> {
   const user = await requireAuth();
+  if (!rateLimit(await clientKey(), { max: 10, windowMs: 60_000 })) {
+    return {
+      success: false,
+      error: "Too many attempts. Please try again later.",
+    };
+  }
   const parsed = changePasswordSchema.safeParse(input);
   if (!parsed.success) {
     return {

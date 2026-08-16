@@ -14,7 +14,16 @@ export default async function ParentPortalPage() {
         batch: { select: { name: true } },
         attendance: { select: { status: true, date: true }, orderBy: { date: "desc" }, take: 60 },
         fees: { orderBy: { month: "desc" }, take: 6 },
-        performances: { orderBy: { date: "desc" }, take: 3 },
+        performances: {
+          orderBy: { date: "desc" },
+          take: 6,
+          include: { coach: { select: { fullName: true } } },
+        },
+        matchRecords: {
+          orderBy: { match: { matchDate: "desc" } },
+          take: 10,
+          include: { match: { select: { opponent: true, matchDate: true, result: true } } },
+        },
         goals: {
           orderBy: { updatedAt: "desc" },
           take: 3,

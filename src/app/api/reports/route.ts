@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
   const fromRaw = searchParams.get("from") ?? "";
   const toRaw = searchParams.get("to") ?? "";
   const month = searchParams.get("month") ?? "";
+  const batchId = searchParams.get("batch") ?? "";
 
   const from = fromRaw ? new Date(fromRaw) : null;
   const to = toRaw ? new Date(toRaw) : null;
@@ -28,10 +29,10 @@ export async function GET(request: NextRequest) {
         }
       : undefined;
 
-  const scope = { ...studentScopeWhere(user), deletedAt: null };
+  const scope = { ...studentScopeWhere(user), deletedAt: null, ...(batchId ? { batchId } : {}) };
   const isAdmin = user.role === "ADMIN";
 
-  const [students, attendance, fees, expenses, performance, matches] = await Promise.all([
+  const [students, attendance, fees, expenses, performance, matches, batches] = await Promise.all([
     db.student.findMany({
       where: scope,
       include: { batch: { select: { name: true } } },
@@ -61,6 +62,11 @@ export async function GET(request: NextRequest) {
       include: { records: { include: { student: { select: { id: true, fullName: true, studentId: true } } } } },
       orderBy: { matchDate: "desc" },
       take: 100,
+    }),
+    db.batch.findMany({
+      where: isAdmin ? {} : { coachId: user.id },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
     }),
   ]);
 
@@ -140,5 +146,38 @@ export async function GET(request: NextRequest) {
     expenses: isAdmin ? expenses : [],
     matches,
     attendanceReport,
+    batches,
+    feeRecords: isAdmin
+      ? fees.map((f) => {
+          const s = studentById.get(f.studentId);
+          return {
+            studentId: s?.studentId ?? "",
+            fullName: s?.fullName ?? "Unknown",
+            batch: s?.batch?.name ?? null,
+            month: f.month,
+            monthlyFee: f.monthlyFee,
+            discount: f.discount,
+            paidAmount: f.paidAmount,
+            balance: f.balance,
+            status: f.status,
+          };
+        })
+      : [],
+    performanceRecords: performance.map((p) => {
+      const s = studentById.get(p.studentId);
+      return {
+        studentId: s?.studentId ?? "",
+        fullName: s?.fullName ?? "Unknown",
+        batch: s?.batch?.name ?? null,
+        date: p.date,
+        overallRating: p.overallRating,
+        battingRating: p.battingRating,
+        bowlingRating: p.bowlingRating,
+        fieldingRating: p.fieldingRating,
+        fitnessRating: p.fitnessRating,
+        disciplineRating: p.disciplineRating,
+        remarks: p.remarks,
+      };
+    }),
   });
 }

@@ -36,6 +36,7 @@ const SETTING_FIELDS = [
   { key: "academyPhone", label: "Contact phone" },
   { key: "academyEmail", label: "Contact email" },
   { key: "academyAddress", label: "Address" },
+  { key: "academyHours", label: "Office hours (e.g. Mon–Sat, 9:00am – 8:00pm)" },
   { key: "receiptFooter", label: "Receipt footer" },
 ];
 

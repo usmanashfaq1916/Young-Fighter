@@ -5,12 +5,19 @@ import { studentIdsInScope } from "@/lib/rbac";
 import { dateOnlyUTC } from "@/lib/utils";
 import { logActivity } from "@/lib/activity";
 import { feeSchema } from "@/lib/validation/schemas";
+import { rateLimit, clientKey } from "@/lib/rate-limit";
 import { z } from "zod";
 import { ATTENDANCE_STATUSES } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
 const statusSchema = z.enum(ATTENDANCE_STATUSES);
+
+const idempotencySchema = z
+  .object({
+    entryId: z.string().min(8).max(128).optional(),
+  })
+  .passthrough();
 
 const attendanceMarkSchema = z.object({
   date: z.coerce.date(),
@@ -31,20 +38,52 @@ const queuedActionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("fee.record"), payload: feeSchema }),
 ]);
 
+async function claimReplay(entryId?: string): Promise<"processed" | "new" | "skip"> {
+  if (!entryId) return "new";
+  try {
+    await db.offlineSyncRecord.create({ data: { key: entryId } });
+    return "new";
+  } catch (error) {
+    if ((error as { code?: string }).code === "P2002") return "processed";
+    return "skip";
+  }
+}
+
 export async function POST(request: NextRequest) {
   const user = await requireRole("ADMIN", "COACH").catch(() => null);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  if (!rateLimit(await clientKey(), { max: 60, windowMs: 60_000 })) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
+
   const body = (await request.json().catch(() => null)) as unknown;
-  const parsed = queuedActionSchema.safeParse(body);
+  const parsed = idempotencySchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   }
-  const queued = parsed.data;
+  const entryId = parsed.data.entryId;
+  const actionParsed = queuedActionSchema.safeParse({
+    action: (body as { action?: string }).action,
+    payload: (body as { payload?: unknown }).payload,
+  });
+  if (!actionParsed.success) {
+    return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+  }
+  const queued = actionParsed.data;
 
   // fee recording is an ADMIN-only capability (matches recordFeeAction).
   if (queued.action === "fee.record" && user.role !== "ADMIN") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const replayStatus = await claimReplay(entryId);
+  if (replayStatus === "processed") {
+    // Already applied by a previous attempt — acknowledge so the client drops it.
+    return NextResponse.json({ ok: true, duplicate: true });
+  }
+  if (replayStatus === "skip") {
+    return NextResponse.json({ error: "Replay unavailable" }, { status: 503 });
   }
 
   try {

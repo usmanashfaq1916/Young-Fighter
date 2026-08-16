@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { QrCode, Trophy, Star, Wallet, Target, Dumbbell } from "lucide-react";
+import { QrCode, Trophy, Star, Wallet, Target, Dumbbell, CalendarDays } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
 import { StatCard } from "@/components/ui/stat-card";
@@ -24,7 +24,18 @@ type StudentData = {
   batch: { name: string } | null;
   attendance: { status: string; date: string }[];
   fees: { id: string; month: string; monthlyFee: number; discount: number; paidAmount: number; balance: number; status: string }[];
-  performances: { id: string; date: string; overallRating: number; battingRating: number; bowlingRating: number; fieldingRating: number; fitnessRating: number; disciplineRating: number }[];
+  performances: {
+    id: string;
+    date: string;
+    overallRating: number;
+    battingRating: number;
+    bowlingRating: number;
+    fieldingRating: number;
+    fitnessRating: number;
+    disciplineRating: number;
+    remarks: string | null;
+    coach: { fullName: string } | null;
+  }[];
   matchRecords: {
     id: string;
     runs: number;
@@ -55,10 +66,15 @@ type StudentData = {
 export function StudentPortal({
   user,
   student,
+  upcomingMatchRecords,
   announcements,
 }: {
   user: { fullName: string };
   student: StudentData | null;
+  upcomingMatchRecords: {
+    id: string;
+    match: { opponent: string; matchDate: string; venue: string | null; result: string | null };
+  }[];
   announcements: { id: string; title: string; body: string; createdAt: string }[];
 }) {
   const [qr, setQr] = useState<string | null>(null);
@@ -144,6 +160,28 @@ export function StudentPortal({
         />
       </div>
 
+      {upcomingMatchRecords.length > 0 && (
+        <div className="rounded-2xl border border-border bg-card p-5">
+          <h3 className="mb-3 flex items-center gap-1.5 text-sm font-bold uppercase tracking-wide text-muted">
+            <CalendarDays className="h-4 w-4 text-gold" /> Upcoming Matches
+          </h3>
+          <ul className="space-y-2">
+            {upcomingMatchRecords.map((m) => (
+              <li
+                key={m.id}
+                className="flex items-center justify-between rounded-xl bg-surface-alt px-3 py-2 text-sm"
+              >
+                <span className="font-semibold">vs {m.match.opponent}</span>
+                <span className="text-xs text-muted">
+                  {formatDate(m.match.matchDate)}
+                  {m.match.venue ? ` · ${m.match.venue}` : ""}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className="grid gap-5 lg:grid-cols-2">
         <div className="rounded-2xl border border-border bg-card p-5">
           <h3 className="mb-3 text-sm font-bold uppercase tracking-wide text-muted">Fees</h3>
@@ -219,17 +257,19 @@ export function StudentPortal({
           ) : (
             <ul className="space-y-2">
               {student.performances.map((p) => (
-                <li key={p.id} className="flex items-center justify-between rounded-xl bg-surface-alt px-3 py-2 text-sm">
-                  <div>
+                <li key={p.id} className="rounded-xl bg-surface-alt px-3 py-2 text-sm">
+                  <div className="flex items-center justify-between">
                     <p className="font-semibold">{formatDate(p.date)}</p>
-                    <p className="text-xs text-muted">
-                      Bat {p.battingRating} · Bowl {p.bowlingRating} · Field {p.fieldingRating} · Fit{" "}
-                      {p.fitnessRating} · Disc {p.disciplineRating}
-                    </p>
+                    <Badge tone={p.overallRating >= 7 ? "green" : p.overallRating >= 4 ? "gold" : "red"}>
+                      {p.overallRating}/10
+                    </Badge>
                   </div>
-                  <Badge tone={p.overallRating >= 7 ? "green" : p.overallRating >= 4 ? "gold" : "red"}>
-                    {p.overallRating}/10
-                  </Badge>
+                  <p className="mt-1 text-xs text-muted">
+                    Bat {p.battingRating} · Bowl {p.bowlingRating} · Field {p.fieldingRating} · Fit{" "}
+                    {p.fitnessRating} · Disc {p.disciplineRating}
+                  </p>
+                  {p.remarks && <p className="mt-1 text-xs italic">“{p.remarks}”</p>}
+                  {p.coach && <p className="mt-1 text-[10px] font-semibold text-primary">— {p.coach.fullName}</p>}
                 </li>
               ))}
             </ul>

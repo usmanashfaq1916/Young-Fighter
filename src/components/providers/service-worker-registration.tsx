@@ -50,6 +50,15 @@ export function ServiceWorkerRegistration() {
         .register("/sw.js")
         .then((registration) => {
           void subscribeToPush(registration);
+          // Ask the browser to wake this app for sync when connectivity
+          // returns — even if the tab is closed.
+          if ("sync" in registration) {
+            (registration as unknown as { sync: { register(tag: string): Promise<void> } }).sync
+              .register("yfa-sync")
+              .catch(() => {
+                /* Background Sync not supported — interval flush covers it */
+              });
+          }
         })
         .catch(() => {
           /* SW registration is best-effort */

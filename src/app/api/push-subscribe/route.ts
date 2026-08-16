@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { requireRole } from "@/lib/auth";
+import { rateLimit, clientKey } from "@/lib/rate-limit";
 import { Prisma } from "@/generated/prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -11,6 +12,10 @@ export async function POST(request: NextRequest) {
       () => null
     );
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    if (!rateLimit(await clientKey(), { max: 10, windowMs: 60_000 })) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    }
 
     const body = (await request.json()) as {
       endpoint?: string;

@@ -86,15 +86,21 @@ async function main() {
   const batchMorning = await db.batch.create({
     data: {
       name: "Morning Batch",
-      description: "6:00 – 8:00 AM",
+      description: "Early-morning training for school students",
       coachId: coach1.id,
+      trainingDays: "Mon, Wed, Fri",
+      trainingTime: "6:00 – 8:00 AM",
+      trainingLocation: "Main Ground",
     },
   });
   const batchEvening = await db.batch.create({
     data: {
       name: "Evening Batch",
-      description: "4:00 – 6:00 PM",
+      description: "After-school training for college players",
       coachId: coach2.id,
+      trainingDays: "Tue, Thu, Sat",
+      trainingTime: "4:00 – 6:00 PM",
+      trainingLocation: "Practice Nets",
     },
   });
 
@@ -293,6 +299,7 @@ async function main() {
       { key: "academyPhone", value: "+92 300 1234567" },
       { key: "academyEmail", value: "info@yfa.pk" },
       { key: "academyAddress", value: "Cricket Ground, Lahore, Pakistan" },
+      { key: "academyHours", value: "Mon–Sat, 9:00am – 8:00pm" },
       { key: "receiptFooter", value: "Thank you for your support! Keep fighting." },
     ],
   });

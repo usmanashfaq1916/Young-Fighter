@@ -44,6 +44,7 @@ export function AppShell({
         ? navItems.filter((i) =>
             [
               "/dashboard",
+              "/coach",
               "/students",
               "/attendance",
               "/performance",

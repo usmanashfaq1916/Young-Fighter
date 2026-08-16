@@ -7,6 +7,7 @@ import { admissionSchema, admissionReviewSchema } from "@/lib/validation/schemas
 import { logActivity } from "@/lib/activity";
 import { notifyUsers } from "@/lib/notifications";
 import { nextStudentId, generateQrToken, dateOnlyUTC } from "@/lib/utils";
+import { rateLimit, clientKey } from "@/lib/rate-limit";
 import type { Prisma } from "@/generated/prisma/client";
 
 export type AdmissionActionResult =
@@ -29,6 +30,9 @@ export async function submitAdmissionAction(input: {
   playingRole?: string;
   message?: string;
 }) {
+  if (!rateLimit(await clientKey(), { max: 5, windowMs: 15 * 60_000 })) {
+    return { ok: false as const, error: "Too many applications. Please try again later." };
+  }
   try {
     const parsed = admissionSchema.safeParse({
       ...input,

@@ -62,7 +62,19 @@ export function queueOfflineWrite(
     (db) =>
       new Promise((resolve, reject) => {
         const tx = db.transaction(STORE, "readwrite");
-        const req = tx.objectStore(STORE).add(entry);
+        const store = tx.objectStore(STORE);
+        const entryId =
+          typeof crypto !== "undefined" && "randomUUID" in crypto
+            ? crypto.randomUUID()
+            : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+        const req = store.add({
+          id: undefined,
+          entryId,
+          action: entry.action,
+          payload: entry.payload,
+          createdAt: entry.createdAt,
+          attempts: 0,
+        });
         req.onsuccess = () => resolve(req.result as number);
         req.onerror = () => reject(req.error);
       })
@@ -70,7 +82,7 @@ export function queueOfflineWrite(
 }
 
 export function getQueuedWrites(): Promise<
-  { id: number; action: string; payload: unknown }[]
+  { id: number; entryId: string; action: string; payload: unknown; attempts: number }[]
 > {
   return openOfflineDb().then(
     (db) =>
@@ -89,6 +101,27 @@ export function removeQueuedWrite(id: number): Promise<void> {
       new Promise((resolve, reject) => {
         const tx = db.transaction(STORE, "readwrite");
         tx.objectStore(STORE).delete(id);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      })
+  );
+}
+
+export function updateQueuedWrite(
+  id: number,
+  patch: Partial<{ attempts: number; failed: boolean }>
+): Promise<void> {
+  return openOfflineDb().then(
+    (db) =>
+      new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE, "readwrite");
+        const store = tx.objectStore(STORE);
+        const req = store.get(id);
+        req.onsuccess = () => {
+          const entry = req.result;
+          if (!entry) return resolve();
+          store.put({ ...entry, ...patch });
+        };
         tx.oncomplete = () => resolve();
         tx.onerror = () => reject(tx.error);
       })
@@ -129,11 +162,22 @@ export async function flushOfflineQueue(): Promise<number> {
       const res = await fetch("/api/offline/replay", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: entry.action, payload: entry.payload }),
+        body: JSON.stringify({
+          action: entry.action,
+          payload: entry.payload,
+          entryId: entry.entryId,
+        }),
       });
       if (res.ok) {
         await removeQueuedWrite(entry.id);
         flushed++;
+      } else if (res.status === 401 || res.status === 403) {
+        // Authorization problem — will never succeed; drop it to avoid
+        // retrying forever and surface nothing (server rejected the data).
+        await removeQueuedWrite(entry.id);
+      } else {
+        // 4xx/5xx: count the attempt so stuck entries can be surfaced.
+        await updateQueuedWrite(entry.id, { attempts: entry.attempts + 1 });
       }
     } catch {
       break; // still offline
@@ -145,13 +189,16 @@ export async function flushOfflineQueue(): Promise<number> {
 export function ConnectivityProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<ConnectivityStatus>("online");
   const [pendingCount, setPendingCount] = useState(0);
+  const [stuckCount, setStuckCount] = useState(0);
 
   const refreshPending = useCallback(async () => {
     try {
       const entries = await getQueuedWrites();
       setPendingCount(entries.length);
+      setStuckCount(entries.filter((e) => e.attempts >= 5).length);
     } catch {
       setPendingCount(0);
+      setStuckCount(0);
     }
   }, []);
 
@@ -184,6 +231,11 @@ export function ConnectivityProvider({ children }: { children: ReactNode }) {
     window.addEventListener("yfa:sync", onSyncEvent);
     queueMicrotask(() => void refreshPending());
 
+    const onMessage = (event: MessageEvent) => {
+      if (event.data?.type === "yfa-background-sync") void flushQueue();
+    };
+    navigator.serviceWorker?.addEventListener?.("message", onMessage);
+
     const interval = window.setInterval(() => {
       if (navigator.onLine) void flushQueue();
     }, 30_000);
@@ -192,6 +244,7 @@ export function ConnectivityProvider({ children }: { children: ReactNode }) {
       window.removeEventListener("online", goOnline);
       window.removeEventListener("offline", goOffline);
       window.removeEventListener("yfa:sync", onSyncEvent);
+      navigator.serviceWorker?.removeEventListener?.("message", onMessage);
       window.clearInterval(interval);
     };
   }, [flushQueue, refreshPending]);
@@ -204,29 +257,42 @@ export function ConnectivityProvider({ children }: { children: ReactNode }) {
   return (
     <ConnectivityContext.Provider value={value}>
       {children}
-      {status !== "online" && (
+      {(status !== "online" || pendingCount > 0) && (
         <div
           role="status"
           className={cn(
-            "fixed bottom-20 left-1/2 z-[90] -translate-x-1/2 rounded-full border px-4 py-1.5 text-xs font-semibold shadow-lg md:bottom-6",
+            "fixed bottom-20 left-1/2 z-[90] flex -translate-x-1/2 items-center gap-2 rounded-full border px-4 py-1.5 text-xs font-semibold shadow-lg md:bottom-6",
             status === "offline"
               ? "border-danger/40 bg-danger/10 text-danger"
-              : "border-info/40 bg-info/10 text-info"
+              : stuckCount > 0
+                ? "border-warning/40 bg-warning/10 text-warning"
+                : "border-info/40 bg-info/10 text-info"
           )}
         >
-          <span className="flex items-center gap-1.5">
-            {status === "offline" ? (
-              <>
-                <CloudOff className="h-3.5 w-3.5" /> Offline — changes will
-                sync when you reconnect
-              </>
-            ) : (
-              <>
-                <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Syncing
-                changes… ({pendingCount})
-              </>
-            )}
-          </span>
+          {status === "offline" ? (
+            <span className="flex items-center gap-1.5">
+              <CloudOff className="h-3.5 w-3.5" /> Offline — changes will
+              sync when you reconnect
+            </span>
+          ) : stuckCount > 0 ? (
+            <span className="flex items-center gap-1.5">
+              <RefreshCw className="h-3.5 w-3.5" /> {stuckCount} change
+              {stuckCount === 1 ? "" : "s"} failed to sync — retrying
+            </span>
+          ) : (
+            <span className="flex items-center gap-1.5">
+              <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Syncing
+              changes… ({pendingCount})
+            </span>
+          )}
+          {status === "online" && pendingCount > 0 && (
+            <button
+              onClick={() => void flushQueue()}
+              className="rounded-full bg-foreground/10 px-2.5 py-0.5 font-bold transition hover:bg-foreground/20"
+            >
+              Retry
+            </button>
+          )}
         </div>
       )}
     </ConnectivityContext.Provider>

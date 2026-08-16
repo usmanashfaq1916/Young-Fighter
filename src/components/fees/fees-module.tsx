@@ -112,9 +112,11 @@ const emptyForm: PaymentForm = {
 export function FeesModule({
   initialMonth,
   receiptFooter = "",
+  packages = [],
 }: {
   initialMonth: string;
   receiptFooter?: string;
+  packages?: { id: string; name: string; price: number; billingType: string }[];
 }) {
   const { toast } = useToast();
   const [pending, startTransition] = useTransition();
@@ -129,6 +131,7 @@ export function FeesModule({
   const [searching, setSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<{ id: string; fullName: string; studentId: string }[]>([]);
   const [waiveTarget, setWaiveTarget] = useState<FeeRow | null>(null);
+  const [packageId, setPackageId] = useState("");
 
   const fetchPage = useCallback(
     async (page: number) => {
@@ -172,6 +175,7 @@ export function FeesModule({
   };
 
   const openForm = (studentId?: string) => {
+    setPackageId("");
     setForm({
       ...emptyForm,
       studentId: studentId ?? "",
@@ -557,6 +561,30 @@ export function FeesModule({
           </label>
 
           <div className="grid gap-4 sm:grid-cols-2">
+            {packages.length > 0 && (
+              <label className="flex flex-col gap-1.5 sm:col-span-2">
+                <span className="text-xs font-semibold uppercase tracking-wide text-muted">
+                  Package (prefill fee)
+                </span>
+                <select
+                  className="input"
+                  value={packageId}
+                  onChange={(e) => {
+                    const id = e.target.value;
+                    setPackageId(id);
+                    const pkg = packages.find((p) => p.id === id);
+                    if (pkg) setForm((f) => ({ ...f, monthlyFee: pkg.price }));
+                  }}
+                >
+                  <option value="">No package selected</option>
+                  {packages.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} — Rs. {p.price.toLocaleString()} ({p.billingType.toLowerCase()})
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             <label className="flex flex-col gap-1.5">
               <span className="text-xs font-semibold uppercase tracking-wide text-muted">Month *</span>
               <input

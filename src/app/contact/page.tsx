@@ -20,7 +20,19 @@ const WHATSAPP_LINK =
   "https://wa.me/9233254221555?text=Hello%20Young%20Fighters%20Academy!%20I%27d%20like%20to%20know%20more.";
 
 export default async function ContactPage() {
-  const settings = await db.setting.findMany();
+  const [settings, batches] = await Promise.all([
+    db.setting.findMany(),
+    db.batch.findMany({
+      where: { isActive: true },
+      select: {
+        name: true,
+        trainingDays: true,
+        trainingTime: true,
+        trainingLocation: true,
+      },
+      orderBy: { name: "asc" },
+    }),
+  ]);
 
   const settingMap: Record<string, string> = {};
   for (const s of settings) settingMap[s.key] = s.value;
@@ -29,6 +41,10 @@ export default async function ContactPage() {
   const phone = settingMap.academyPhone || CONTACT_PHONE;
   const email = settingMap.academyEmail || "info@youngfighters.com.pk";
   const address = settingMap.academyAddress || "City Ground, Pakistan";
+  const academyHours = settingMap.academyHours || "Mon–Sat, 9:00am – 8:00pm";
+  const scheduledBatches = batches.filter(
+    (b) => b.trainingDays || b.trainingTime || b.trainingLocation
+  );
 
   return (
     <div className="min-h-dvh bg-background text-foreground">
@@ -62,7 +78,7 @@ export default async function ContactPage() {
             >
               {phone}
             </a>
-            <p className="mt-1 text-xs text-muted">Mon–Sat, 9:00am – 8:00pm</p>
+            <p className="mt-1 text-xs text-muted">{academyHours}</p>
           </div>
 
           <div className="card p-6">
@@ -110,9 +126,25 @@ export default async function ContactPage() {
           <Clock className="mt-0.5 h-5 w-5 shrink-0 text-gold-dark" />
           <div className="flex-1">
             <p className="text-sm font-bold">Training hours</p>
-            <p className="mt-0.5 text-sm text-muted">
-              Morning batch: 6:00am – 9:00am · Evening batch: 4:00pm – 8:00pm.
-              Hours may vary by season — confirm on WhatsApp.
+            {scheduledBatches.length > 0 ? (
+              <ul className="mt-1.5 space-y-1">
+                {scheduledBatches.map((b) => (
+                  <li key={b.name} className="text-sm text-muted">
+                    <span className="font-semibold text-foreground">{b.name}:</span>{" "}
+                    {[b.trainingDays, b.trainingTime, b.trainingLocation]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-0.5 text-sm text-muted">
+                Batch schedules are confirmed at admission. Hours may vary by season —
+                confirm on WhatsApp.
+              </p>
+            )}
+            <p className="mt-1.5 text-xs text-muted">
+              Office: {academyHours}
             </p>
           </div>
         </div>

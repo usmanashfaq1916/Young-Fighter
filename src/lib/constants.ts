@@ -217,6 +217,20 @@ export const paymentMethodLabel: Record<string, string> = {
   OTHER: "Other",
 };
 
+export const BILLING_TYPES = [
+  "MONTHLY",
+  "QUARTERLY",
+  "HALF_YEARLY",
+  "YEARLY",
+] as const;
+
+export const billingTypeLabel: Record<string, string> = {
+  MONTHLY: "Monthly",
+  QUARTERLY: "Quarterly",
+  HALF_YEARLY: "Half-yearly",
+  YEARLY: "Yearly",
+};
+
 export const matchResultLabel: Record<string, string> = {
   WON: "Won",
   LOST: "Lost",

@@ -13,13 +13,19 @@ export default async function FeesPage() {
   const settings = await db.setting.findMany();
   const receiptFooter = settings.find((s) => s.key === "receiptFooter")?.value ?? "";
 
+  const packages = await db.package.findMany({
+    where: { isActive: true },
+    select: { id: true, name: true, price: true, billingType: true },
+    orderBy: { price: "asc" },
+  });
+
   return (
     <div>
       <PageHeader
         title="Fees & Payments"
         description="Record fee payments, generate receipts and send WhatsApp reminders."
       />
-      <FeesModule initialMonth={month} receiptFooter={receiptFooter} />
+      <FeesModule initialMonth={month} receiptFooter={receiptFooter} packages={packages} />
     </div>
   );
 }

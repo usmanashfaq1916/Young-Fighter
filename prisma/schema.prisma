@@ -124,6 +124,13 @@ enum ExpenseCategory {
   OTHER
 }
 
+enum BillingType {
+  MONTHLY
+  QUARTERLY
+  HALF_YEARLY
+  YEARLY
+}
+
 enum AnnouncementPriority {
   LOW
   MEDIUM
@@ -156,6 +163,9 @@ enum ActivityType {
   EXPENSE_ADDED
   EXPENSE_UPDATED
   EXPENSE_DELETED
+  PACKAGE_CREATED
+  PACKAGE_UPDATED
+  PACKAGE_DELETED
   COACH_ADDED
   COACH_UPDATED
   COACH_DEACTIVATED
@@ -528,6 +538,24 @@ model Expense {
   @@index([category])
 }
 
+model Package {
+  id              String      @id @default(cuid())
+  name            String
+  description     String?
+  price           Int
+  billingType     BillingType @default(MONTHLY)
+  sessionsPerWeek Int         @default(0)
+  features        String[]
+  startDate       DateTime?   @db.Date
+  endDate         DateTime?   @db.Date
+  isActive        Boolean     @default(true)
+  createdBy       String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([isActive])
+}
+
 model Document {
   id         String   @id @default(cuid())
   studentId  String
@@ -617,4 +645,12 @@ model PushSubscription {
   createdAt DateTime @default(now())
 
   @@index([userId])
+}
+
+model OfflineSyncRecord {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
 }

@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
   ADMISSION_STATUSES,
   ATTENDANCE_STATUSES,
+  BILLING_TYPES,
   DISMISSALS,
   EXPENSE_CATEGORIES,
   GENDERS,
@@ -198,6 +199,26 @@ export const expenseSchema = z.object({
   notes: z.string().max(500).optional().or(z.literal("")),
 });
 
+export const packageSchema = z.object({
+  name: z.string().min(2, { error: "Please enter a package name." }).max(100),
+  description: z.string().max(500).optional().or(z.literal("")),
+  price: z.coerce
+    .number({ error: "Price must be a number." })
+    .int()
+    .min(0, { error: "Price cannot be negative." })
+    .max(100_000_000),
+  billingType: z.enum(BILLING_TYPES, { error: "Please select a billing type." }),
+  sessionsPerWeek: z.coerce
+    .number()
+    .int()
+    .min(0, { error: "Sessions per week cannot be negative." })
+    .max(30),
+  features: z.array(z.string().max(200)).max(20),
+  startDate: z.coerce.date().optional().nullable(),
+  endDate: z.coerce.date().optional().nullable(),
+  isActive: z.boolean().default(true),
+});
+
 export const goalSchema = z.object({
   studentId: z.string().min(1, { error: "Please select a student." }),
   title: z.string().min(2, { error: "Please enter a goal title." }).max(200),
@@ -319,6 +340,7 @@ export type StudentInput = z.infer<typeof studentSchema>;
 export type FeeInput = z.infer<typeof feeSchema>;
 export type PerformanceInput = z.infer<typeof performanceSchema>;
 export type ExpenseInput = z.infer<typeof expenseSchema>;
+export type PackageInput = z.infer<typeof packageSchema>;
 export type CoachInput = z.infer<typeof coachSchema>;
 export type ParentInput = z.infer<typeof parentSchema>;
 export type GoalInput = z.infer<typeof goalSchema>;

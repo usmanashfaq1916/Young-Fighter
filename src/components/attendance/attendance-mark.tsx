@@ -78,6 +78,12 @@ export function AttendanceMark({
     return () => clearTimeout(t);
   }, [load]);
 
+  useEffect(() => {
+    const onSynced = () => void load();
+    window.addEventListener("yfa:synced", onSynced);
+    return () => window.removeEventListener("yfa:synced", onSynced);
+  }, [load]);
+
   const setAll = (status: NonNullable<Status>) => {
     setStudents((prev) => prev.map((s) => ({ ...s, status })));
   };
@@ -102,13 +108,25 @@ export function AttendanceMark({
       return;
     }
     startTransition(async () => {
-      const res = await markAttendanceAction(payload);
-      if (res.ok) {
-        toast(`Attendance saved for ${res.count} students`, "success");
-        window.dispatchEvent(new Event("yfa:sync"));
-        void load();
-      } else {
-        toast(res.error, "error");
+      try {
+        const res = await markAttendanceAction(payload);
+        if (res.ok) {
+          toast(`Attendance saved for ${res.count} students`, "success");
+          window.dispatchEvent(new Event("yfa:sync"));
+          void load();
+        } else {
+          toast(res.error, "error");
+        }
+      } catch {
+        // Network failure while navigator.onLine was true — queue it so the
+        // save is not lost.
+        void queueOfflineWrite({
+          action: "attendance.bulk",
+          payload,
+          createdAt: Date.now(),
+        }).then(() => {
+          toast("Connection lost — saved offline. Will sync when back online.", "info");
+        });
       }
     });
   };
@@ -127,12 +145,26 @@ export function AttendanceMark({
       return;
     }
     startTransition(async () => {
-      const res = await bulkMarkAbsentAction({ date, batchId: batchId || undefined });
-      if (res.ok) {
-        toast(`Marked ${res.count} students absent`, "success");
-        void load();
-      } else {
-        toast(res.error, "error");
+      try {
+        const res = await bulkMarkAbsentAction({ date, batchId: batchId || undefined });
+        if (res.ok) {
+          toast(`Marked ${res.count} students absent`, "success");
+          void load();
+        } else {
+          toast(res.error, "error");
+        }
+      } catch {
+        void queueOfflineWrite({
+          action: "attendance.bulk",
+          payload: {
+            date,
+            batchId: batchId || undefined,
+            entries: students.map((s) => ({ studentId: s.id, status: "ABSENT" as const })),
+          },
+          createdAt: Date.now(),
+        }).then(() => {
+          toast("Connection lost — saved offline. Will sync when back online.", "info");
+        });
       }
     });
   };

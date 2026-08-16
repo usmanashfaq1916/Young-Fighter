@@ -20,7 +20,8 @@ import {
   FileText,
 } from "lucide-react";
 import { db } from "@/lib/db";
-import { ACADEMY_NAME } from "@/lib/constants";
+import { ACADEMY_NAME, billingTypeLabel } from "@/lib/constants";
+import { formatMoney } from "@/lib/utils";
 import { LandingHeader } from "@/components/landing/landing-header";
 import { LandingFooter } from "@/components/landing/landing-footer";
 import { WhatsAppIcon } from "@/components/landing/whatsapp-icon";
@@ -149,62 +150,81 @@ const ADMISSION_STEPS: { icon: IconType; title: string; text: string }[] = [
 ];
 
 export default async function HomePage() {
-  const [settings, batches, activeStudents, coachCount, matchCount, achievements, topPerformers] =
-    await Promise.all([
-      db.setting.findMany(),
-      db.batch.findMany({
-        select: { name: true, description: true, coach: { select: { fullName: true } } },
-        orderBy: { name: "asc" },
-      }),
-      db.student.count({ where: { status: "ACTIVE", deletedAt: null } }),
-      db.user.count({ where: { role: "COACH", status: "ACTIVE" } }),
-      db.match.count(),
-      db.matchRecord.aggregate({
-        _count: { _all: true },
-        _sum: { runs: true, wickets: true, catches: true },
-        where: { selected: true },
-      }),
-      (async () => {
-        const latest = await db.performance.findMany({
-          where: { student: { status: "ACTIVE", deletedAt: null } },
-          orderBy: { date: "desc" },
-          take: 300,
-          select: {
-            studentId: true,
-            overallRating: true,
-            date: true,
-            student: {
-              select: {
-                fullName: true,
-                skillLevel: true,
-                photoUrl: true,
-                studentId: true,
-                matchRecords: {
-                  select: { manOfTheMatch: true },
-                },
+  const [
+    settings,
+    batches,
+    activeStudents,
+    coachCount,
+    matchCount,
+    achievements,
+    topPerformers,
+    packages,
+  ] = await Promise.all([
+    db.setting.findMany(),
+    db.batch.findMany({
+      select: {
+        name: true,
+        description: true,
+        trainingDays: true,
+        trainingTime: true,
+        trainingLocation: true,
+        coach: { select: { fullName: true } },
+      },
+      orderBy: { name: "asc" },
+    }),
+    db.student.count({ where: { status: "ACTIVE", deletedAt: null } }),
+    db.user.count({ where: { role: "COACH", status: "ACTIVE" } }),
+    db.match.count(),
+    db.matchRecord.aggregate({
+      _count: { _all: true },
+      _sum: { runs: true, wickets: true, catches: true },
+      where: { selected: true },
+    }),
+    (async () => {
+      const latest = await db.performance.findMany({
+        where: { student: { status: "ACTIVE", deletedAt: null } },
+        orderBy: { date: "desc" },
+        take: 300,
+        select: {
+          studentId: true,
+          overallRating: true,
+          date: true,
+          student: {
+            select: {
+              fullName: true,
+              skillLevel: true,
+              photoUrl: true,
+              studentId: true,
+              matchRecords: {
+                select: { manOfTheMatch: true },
               },
             },
           },
-        });
-        const best = new Map<string, (typeof latest)[number]>();
-        for (const p of latest) {
-          if (!best.has(p.studentId) || p.date > best.get(p.studentId)!.date) {
-            best.set(p.studentId, p);
-          }
+        },
+      });
+      const best = new Map<string, (typeof latest)[number]>();
+      for (const p of latest) {
+        if (!best.has(p.studentId) || p.date > best.get(p.studentId)!.date) {
+          best.set(p.studentId, p);
         }
-        return Array.from(best.values())
-          .sort((a, b) => b.overallRating - a.overallRating)
-          .slice(0, 5)
-          .map((p) => ({
-            name: p.student.fullName,
-            rating: p.overallRating,
-            skillLevel: p.student.skillLevel,
-            photoUrl: p.student.photoUrl,
-            studentId: p.student.studentId,
-            motm: p.student.matchRecords.filter((m) => m.manOfTheMatch).length,
-          }));
-      })(),
-    ]);
+      }
+      return Array.from(best.values())
+        .sort((a, b) => b.overallRating - a.overallRating)
+        .slice(0, 5)
+        .map((p) => ({
+          name: p.student.fullName,
+          rating: p.overallRating,
+          skillLevel: p.student.skillLevel,
+          photoUrl: p.student.photoUrl,
+          studentId: p.student.studentId,
+          motm: p.student.matchRecords.filter((m) => m.manOfTheMatch).length,
+        }));
+    })(),
+    db.package.findMany({
+      where: { isActive: true },
+      orderBy: [{ price: "asc" }, { name: "asc" }],
+    }),
+  ]);
 
   const settingMap: Record<string, string> = {};
   for (const s of settings) settingMap[s.key] = s.value;
@@ -387,6 +407,14 @@ export default async function HomePage() {
                     <p className="mt-2 text-sm text-muted">
                       {b.description || "Batch training program"}
                     </p>
+                    {(b.trainingDays || b.trainingTime || b.trainingLocation) && (
+                      <p className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-surface-alt px-2.5 py-1.5 text-xs font-semibold text-foreground">
+                        <CalendarDays className="h-3.5 w-3.5 text-gold-dark" />
+                        {[b.trainingDays, b.trainingTime, b.trainingLocation]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </p>
+                    )}
                     {b.coach && (
                       <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-muted">
                         Coach · {b.coach.fullName}
@@ -525,6 +553,65 @@ export default async function HomePage() {
           </Link>
         </div>
       </section>
+
+      {/* Packages (only when active packages exist in the database) */}
+      {packages.length > 0 && (
+        <section className="bg-surface-alt">
+          <div className="mx-auto max-w-6xl px-5 py-16 md:py-20">
+            <div className="mx-auto max-w-2xl text-center">
+              <p className="text-xs font-bold uppercase tracking-[0.25em] text-gold-dark">
+                Training packages
+              </p>
+              <h2 className="mt-3 text-3xl font-black tracking-tight md:text-4xl">
+                Programs that fit your child&apos;s journey
+              </h2>
+              <p className="mt-3 text-muted">
+                Current packages offered by the academy. Details are confirmed with
+                your batch placement.
+              </p>
+            </div>
+            <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+              {packages.map((p) => (
+                <div key={p.id} className="card flex flex-col p-6">
+                  <div className="flex items-start justify-between gap-3">
+                    <h3 className="text-lg font-black">{p.name}</h3>
+                    {p.sessionsPerWeek > 0 && (
+                      <span className="rounded-full bg-gold/15 px-2.5 py-0.5 text-xs font-bold text-gold-dark dark:text-gold-light">
+                        {p.sessionsPerWeek}/week
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-2 text-3xl font-black tracking-tight text-primary">
+                    {formatMoney(p.price)}
+                    <span className="ml-1 text-xs font-semibold uppercase tracking-wide text-muted">
+                      / {billingTypeLabel[p.billingType].toLowerCase()}
+                    </span>
+                  </p>
+                  {p.description && (
+                    <p className="mt-3 text-sm leading-relaxed text-muted">{p.description}</p>
+                  )}
+                  {p.features.length > 0 && (
+                    <ul className="mt-4 space-y-2">
+                      {p.features.map((f) => (
+                        <li key={f} className="flex items-start gap-2 text-sm">
+                          <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-gold-dark" />
+                          <span>{f}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <div className="mt-auto pt-5">
+                    <Link href="/apply" className="btn-outline-dark w-full justify-center">
+                      Apply for this package
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* FAQ */}
       <section className="bg-surface-alt">

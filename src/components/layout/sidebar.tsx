@@ -23,6 +23,8 @@ import {
   Target,
   Dumbbell,
   ClipboardList,
+  BadgePercent,
+  CalendarDays,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { signOut } from "@/app/actions/auth";
@@ -39,6 +41,7 @@ type NavItem = {
 
 export const navItems: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: Gauge, exact: true },
+  { href: "/coach", label: "My Batches", icon: CalendarDays },
   { href: "/students", label: "Students", icon: Users },
   { href: "/attendance", label: "Attendance", icon: ClipboardCheck },
   { href: "/fees", label: "Fees", icon: Wallet },
@@ -49,6 +52,7 @@ export const navItems: NavItem[] = [
   { href: "/rankings", label: "Rankings", icon: Medal },
   { href: "/admissions", label: "Admissions", icon: ClipboardList },
   { href: "/expenses", label: "Expenses", icon: Receipt },
+  { href: "/packages", label: "Packages", icon: BadgePercent },
   { href: "/reports", label: "Reports", icon: FileBarChart },
   { href: "/scan", label: "Scan QR", icon: ScanLine },
   { href: "/coaches", label: "Coaches", icon: GraduationCap },

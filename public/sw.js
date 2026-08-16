@@ -60,6 +60,21 @@ self.addEventListener("fetch", (event) => {
   }
 });
 
+// Background Sync: wake the open page so the write queue can flush.
+self.addEventListener("sync", (event) => {
+  if (event.tag === "yfa-sync") {
+    event.waitUntil(
+      clients
+        .matchAll({ type: "window", includeUncontrolled: true })
+        .then((list) => {
+          for (const client of list) {
+            client.postMessage({ type: "yfa-background-sync" });
+          }
+        })
+    );
+  }
+});
+
 self.addEventListener("push", (event) => {
   let data = { title: "Young Fighters Academy", body: "", icon: "/icon-192.png", url: "/" };
   try {
