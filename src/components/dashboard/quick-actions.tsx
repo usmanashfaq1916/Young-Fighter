@@ -6,7 +6,7 @@ const ACTIONS = [
   { href: "/attendance", label: "Mark Attendance", icon: ClipboardCheck },
   { href: "/fees", label: "Record Fee", icon: Wallet },
   { href: "/performance", label: "Add Performance", icon: TrendingUp },
-  { href: "/matches", label: "Add Match", icon: Trophy },
+  { href: "/dashboard/matches", label: "Add Match", icon: Trophy },
   { href: "/expenses", label: "Add Expense", icon: Receipt },
   { href: "/reports", label: "Generate Report", icon: FileBarChart },
 ];

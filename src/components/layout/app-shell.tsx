@@ -50,7 +50,7 @@ export function AppShell({
               "/performance",
               "/goals",
               "/training",
-              "/matches",
+              "/dashboard/matches",
               "/rankings",
               "/scan",
               "/reports",

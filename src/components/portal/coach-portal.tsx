@@ -161,7 +161,7 @@ export function CoachPortal({
                 ))}
               </ul>
             )}
-            <Link href="/matches" className="mt-3 inline-block text-xs font-semibold text-primary hover:underline">
+            <Link href="/dashboard/matches" className="mt-3 inline-block text-xs font-semibold text-primary hover:underline">
               Manage matches →
             </Link>
           </div>

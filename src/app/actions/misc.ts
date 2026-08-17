@@ -254,7 +254,7 @@ export async function inviteCoachAction(input: { fullName: string; email: string
     details: email,
   });
 
-  revalidatePath("/coaches");
+  revalidatePath("/dashboard/coaches");
   return { ok: true as const, temporaryPassword };
 }
 
@@ -271,7 +271,7 @@ export async function deactivateCoachAction(userId: string) {
     entity: "user",
     entityId: userId,
   });
-  revalidatePath("/coaches");
+  revalidatePath("/dashboard/coaches");
   return { ok: true as const };
 }
 
@@ -281,7 +281,7 @@ export async function reactivateCoachAction(userId: string) {
     where: { id: userId, role: "COACH" },
     data: { status: "ACTIVE" },
   });
-  revalidatePath("/coaches");
+  revalidatePath("/dashboard/coaches");
   return { ok: true as const };
 }
 

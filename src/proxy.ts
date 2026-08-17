@@ -1,7 +1,19 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { decryptSession } from "@/lib/session";
 
-const PUBLIC_PATHS = ["/login", "/forgot-password", "/reset-password", "/contact", "/apply"];
+const PUBLIC_PATHS = [
+  "/login",
+  "/forgot-password",
+  "/reset-password",
+  "/about",
+  "/programs",
+  "/coaches",
+  "/players",
+  "/matches",
+  "/gallery",
+  "/contact",
+  "/apply",
+];
 
 const ROLE_PREFIX: Record<string, string> = {
   ADMIN: "/dashboard",
@@ -15,7 +27,7 @@ const SHARED_MODULE_PATHS = [
   "/students",
   "/attendance",
   "/performance",
-  "/matches",
+  "/dashboard/matches",
   "/rankings",
   "/goals",
   "/training",
@@ -27,7 +39,7 @@ const SHARED_MODULE_PATHS = [
 const ADMIN_ONLY_MODULE_PATHS = [
   "/expenses",
   "/fees",
-  "/coaches",
+  "/dashboard/coaches",
   "/settings",
   "/users",
   "/audit-logs",
@@ -36,6 +48,20 @@ const ADMIN_ONLY_MODULE_PATHS = [
 
 // Modules available to every authenticated role.
 const ANY_ROLE_MODULE_PATHS = ["/notifications", "/profile"];
+
+// Every path owned by the authenticated application. Unknown paths are
+// allowed through so Next.js can render the custom 404 page.
+const AUTHED_PATHS = [
+  ...SHARED_MODULE_PATHS,
+  ...ADMIN_ONLY_MODULE_PATHS,
+  ...ANY_ROLE_MODULE_PATHS,
+  "/dashboard",
+  "/coach",
+  "/student",
+  "/parent",
+  "/packages",
+  "/forbidden",
+];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -53,6 +79,13 @@ export async function proxy(request: NextRequest) {
       const dest = ROLE_PREFIX[session.role] ?? "/dashboard";
       return NextResponse.redirect(new URL(dest, request.url));
     }
+    return NextResponse.next();
+  }
+
+  const isKnownAuthedPath = AUTHED_PATHS.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`)
+  );
+  if (!isKnownAuthedPath) {
     return NextResponse.next();
   }
 

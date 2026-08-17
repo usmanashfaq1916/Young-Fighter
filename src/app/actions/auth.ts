@@ -94,7 +94,7 @@ export async function signOut(): Promise<void> {
     await logActivity({ userId: user.id, type: "LOGOUT", action: "User logged out" });
   }
   await deleteSession();
-  redirect("/login");
+  redirect("/");
 }
 
 export async function forgotPasswordAction(

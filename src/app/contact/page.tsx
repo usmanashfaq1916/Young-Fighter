@@ -48,7 +48,7 @@ export default async function ContactPage() {
 
   return (
     <div className="min-h-dvh bg-background text-foreground">
-      <LandingHeader active="contact" />
+      <LandingHeader />
 
       <section className="bg-gradient-to-br from-navy via-navy-light to-navy text-white">
         <div className="mx-auto max-w-6xl px-5 py-16 text-center md:py-20">

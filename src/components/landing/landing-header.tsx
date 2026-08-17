@@ -1,15 +1,14 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { ArrowRight, LayoutDashboard } from "lucide-react";
+import { verifySession, dashboardPathFor } from "@/lib/auth";
+import { PublicNavLinks } from "./public-nav-links";
+import { MobileMenu } from "./mobile-menu";
 
-const NAV_LINKS = [
-  { href: "/", label: "Home", key: "home" },
-  { href: "/apply", label: "Apply Now", key: "apply" },
-  { href: "/contact", label: "Contact Us", key: "contact" },
-] as const;
+export async function LandingHeader() {
+  const user = await verifySession();
+  const dashboardHref = user ? dashboardPathFor(user.role) : undefined;
 
-export function LandingHeader({ active }: { active?: "home" | "apply" | "contact" }) {
   return (
     <header className="bg-navy text-white">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-4">
@@ -34,46 +33,24 @@ export function LandingHeader({ active }: { active?: "home" | "apply" | "contact
             </p>
           </div>
         </Link>
-        <nav className="hidden items-center gap-1 sm:flex" aria-label="Main">
-          {NAV_LINKS.map((l) => (
-            <Link
-              key={l.key}
-              href={l.href}
-              className={cn(
-                "rounded-lg px-3 py-2 text-sm font-semibold transition",
-                active === l.key
-                  ? "text-gold-light"
-                  : "text-white/70 hover:bg-white/10 hover:text-white"
-              )}
-            >
-              {l.label}
-            </Link>
-          ))}
+        <nav className="hidden items-center gap-1 xl:flex" aria-label="Main">
+          <PublicNavLinks />
         </nav>
-        <Link href="/login" className="btn-gold">
-          Sign in
-          <ArrowRight className="h-4 w-4" />
-        </Link>
+        <div className="flex items-center gap-2">
+          <MobileMenu loggedIn={!!user} dashboardHref={dashboardHref} />
+          {user ? (
+            <Link href={dashboardHref!} className="btn-gold !px-4">
+              <LayoutDashboard className="h-4 w-4" />
+              Dashboard
+            </Link>
+          ) : (
+            <Link href="/login" className="btn-gold">
+              Sign in
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          )}
+        </div>
       </div>
-      <nav
-        className="flex items-center justify-center gap-1 border-t border-white/10 px-5 py-2 sm:hidden"
-        aria-label="Main"
-      >
-        {NAV_LINKS.map((l) => (
-          <Link
-            key={l.key}
-            href={l.href}
-            className={cn(
-              "rounded-lg px-3 py-2 text-sm font-semibold transition",
-              active === l.key
-                ? "text-gold-light"
-                : "text-white/70 hover:bg-white/10 hover:text-white"
-            )}
-          >
-            {l.label}
-          </Link>
-        ))}
-      </nav>
     </header>
   );
 }

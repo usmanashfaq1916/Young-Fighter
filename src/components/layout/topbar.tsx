@@ -15,7 +15,6 @@ import {
 import { useTheme } from "next-themes";
 import { Avatar } from "@/components/ui/avatar";
 import { signOut } from "@/app/actions/auth";
-import { useRouter } from "next/navigation";
 import { useEffect, useSyncExternalStore } from "react";
 
 export function Topbar({
@@ -33,7 +32,6 @@ export function Topbar({
 }) {
   const { theme, setTheme } = useTheme();
   const pathname = usePathname();
-  const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const mounted = useSyncExternalStore(
@@ -147,7 +145,6 @@ export function Topbar({
               onClick={async () => {
                 setBusy(true);
                 await signOut();
-                router.replace("/login");
               }}
               disabled={busy}
               className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-danger transition hover:bg-danger/10"

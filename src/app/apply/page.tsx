@@ -4,6 +4,7 @@ import { ACADEMY_NAME } from "@/lib/constants";
 import { LandingHeader } from "@/components/landing/landing-header";
 import { LandingFooter } from "@/components/landing/landing-footer";
 import { AdmissionsApply } from "@/components/admissions/admissions-apply";
+import { Breadcrumbs } from "@/components/landing/breadcrumbs";
 import { ClipboardList, CalendarDays, GraduationCap } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -23,7 +24,8 @@ export default async function AdmissionsPage() {
 
   return (
     <div className="min-h-dvh bg-background text-foreground">
-      <LandingHeader active="apply" />
+      <LandingHeader />
+      <Breadcrumbs />
 
       <section className="bg-gradient-to-br from-navy via-navy-light to-navy text-white">
         <div className="mx-auto max-w-6xl px-5 py-16 text-center md:py-20">

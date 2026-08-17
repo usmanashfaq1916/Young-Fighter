@@ -12,6 +12,15 @@ const nextConfig: NextConfig = {
   experimental: {
     useOffline: true,
   },
+  async redirects() {
+    return [
+      {
+        source: "/admission",
+        destination: "/apply",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {

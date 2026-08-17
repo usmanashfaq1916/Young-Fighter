@@ -41,7 +41,7 @@ export async function CoachDashboard({ user }: { user: SessionUser }) {
     { href: "/students", label: "My Students", icon: Users, desc: "View and manage assigned players" },
     { href: "/attendance", label: "Mark Attendance", icon: ClipboardCheck, desc: "Daily roll call" },
     { href: "/performance", label: "Add Performance", icon: TrendingUp, desc: "Rate player skills" },
-    { href: "/matches", label: "Matches", icon: Trophy, desc: "Match records and player stats" },
+    { href: "/dashboard/matches", label: "Matches", icon: Trophy, desc: "Match records and player stats" },
   ];
 
   return (

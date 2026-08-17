@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { verifySession } from "@/lib/auth";
+import { verifySession, dashboardPathFor } from "@/lib/auth";
 import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = { title: "Sign In" };
@@ -14,7 +14,7 @@ export default async function LoginPage({
 }) {
   const user = await verifySession();
   const query = await searchParams;
-  if (user) redirect("/dashboard");
+  if (user) redirect(dashboardPathFor(user.role));
   const next = typeof query.next === "string" ? query.next : undefined;
 
   return (

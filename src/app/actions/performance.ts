@@ -342,7 +342,7 @@ export async function saveMatchAction(input: {
       entityId: matchId!,
       details: `vs ${data.opponent}`,
     });
-    revalidatePath("/matches");
+    revalidatePath("/dashboard/matches");
     revalidatePath("/dashboard");
     revalidatePath("/rankings");
     return { ok: true as const, id: matchId };

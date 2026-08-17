@@ -275,7 +275,7 @@ export default async function HomePage() {
           }),
         }}
       />
-      <LandingHeader active="home" />
+      <LandingHeader />
 
       {/* Hero */}
       <section className="bg-gradient-to-br from-navy via-navy-light to-navy text-white">
@@ -292,16 +292,16 @@ export default async function HomePage() {
             match experience.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <Link href="/apply" className="btn-gold !px-6 !py-3 text-base">
-              Apply for admission
+            <Link href="/programs" className="btn-gold !px-6 !py-3 text-base">
+              Explore our programs
               <ArrowRight className="h-4 w-4" />
             </Link>
-            <a
+            <Link
               href="#programs"
               className="inline-flex items-center gap-2 rounded-xl border border-white/25 px-6 py-3 text-base font-semibold text-white transition hover:bg-white/10"
             >
-              Explore our programs
-            </a>
+              View training batches
+            </Link>
           </div>
         </div>
       </section>
