@@ -50,13 +50,30 @@ export async function loginAction(
   const { email, password } = parsed.data;
 
   try {
-    const user = await db.user.findUnique({ where: { email: email.toLowerCase() } });
+    const identifier = email.toLowerCase();
+    const isStudentId = /^yfa-\d+$/i.test(identifier);
+    let studentUserId: string | null = null;
+    if (isStudentId) {
+      const student = await db.student.findFirst({
+        where: { studentId: identifier.toUpperCase() },
+        select: { id: true },
+      });
+      studentUserId = student?.id ?? null;
+    }
+    const user = await db.user.findFirst({
+      where: {
+        OR: [
+          { email: identifier },
+          ...(studentUserId ? [{ studentId: studentUserId }] : []),
+        ],
+      },
+    });
     if (!user) {
-      return { success: false, error: "Invalid email or password." };
+      return { success: false, error: "Invalid email, student ID or password." };
     }
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) {
-      return { success: false, error: "Invalid email or password." };
+      return { success: false, error: "Invalid email, student ID or password." };
     }
     if (user.status !== "ACTIVE") {
       return {

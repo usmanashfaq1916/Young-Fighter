@@ -12,6 +12,7 @@ import { studentSchema } from "@/lib/validation/schemas";
 import {
   createStudentAction,
   updateStudentAction,
+  type StudentActionResult,
 } from "@/app/actions/students";
 import { SKILL_LEVELS, GENDERS, STUDENT_STATUSES, BLOOD_GROUPS, PLAYING_ROLES, BATTING_STYLES, BOWLING_STYLES } from "@/lib/constants";
 import { useToast } from "@/components/providers/toast-provider";
@@ -138,14 +139,16 @@ export function StudentForm({
     };
     startTransition(async () => {
       try {
-        const res = student
+        const res: StudentActionResult = student
           ? await updateStudentAction(student.id, payload)
           : await createStudentAction(payload);
         if (res.ok) {
           toast(
             student
               ? "Student updated"
-              : `Student registered (ID ${"studentId" in res ? res.studentId : ""})`,
+              : "login" in res && res.login?.created
+                ? `Student registered (ID ${"studentId" in res ? res.studentId : ""}). Login: ${res.login.username} / ${res.login.password}`
+                : `Student registered (ID ${"studentId" in res ? res.studentId : ""})`,
             "success"
           );
           router.push(student ? `/students/${student.id}` : "/students");

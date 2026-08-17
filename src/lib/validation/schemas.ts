@@ -15,7 +15,7 @@ import {
   STUDENT_STATUSES,
   TRAINING_CATEGORIES,
 } from "@/lib/constants";
-import { normalizePhone } from "@/lib/utils";
+import { normalizePhone, normalizeStudentId } from "@/lib/utils";
 
 const pkPhone = z
   .string()
@@ -30,7 +30,16 @@ const pkPhone = z
 const optionalPkPhone = pkPhone.optional().or(z.literal(""));
 
 export const loginSchema = z.object({
-  email: z.email({ error: "Please enter a valid email address." }),
+  email: z.union(
+    [
+      z.email({ error: "Please enter a valid email address." }),
+      z
+        .string()
+        .regex(/^yfa-\d+$/i, { error: "Please enter a valid student ID (e.g. YFA-00007)." })
+        .transform(normalizeStudentId),
+    ],
+    { error: "Please enter a valid email or student ID." }
+  ),
   password: z.string().min(1, { error: "Password is required." }),
 });
 

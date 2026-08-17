@@ -87,7 +87,12 @@ export function AdmissionsModule({
     startTransition(async () => {
       const res = await convertAdmissionAction(convertTarget.id);
       if (res.ok) {
-        toast(`Student created — ${res.studentId}`, "success");
+        toast(
+          res.login?.created
+            ? `Student created — ${res.studentId}. Login: ${res.login.username} / ${res.login.password}`
+            : `Student created — ${res.studentId}`,
+          "success"
+        );
         setConvertTarget(null);
         router.refresh();
       } else {

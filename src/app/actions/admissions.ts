@@ -7,11 +7,12 @@ import { admissionSchema, admissionReviewSchema } from "@/lib/validation/schemas
 import { logActivity } from "@/lib/activity";
 import { notifyUsers } from "@/lib/notifications";
 import { nextStudentId, generateQrToken, dateOnlyUTC } from "@/lib/utils";
+import { ensureStudentUser, type StudentLoginResult } from "@/lib/student-user";
 import { rateLimit, clientKey } from "@/lib/rate-limit";
 import type { Prisma } from "@/generated/prisma/client";
 
 export type AdmissionActionResult =
-  | { ok: true; id?: string }
+  | { ok: true; id?: string; studentId?: string; login?: StudentLoginResult }
   | { ok: false; error: string; fieldErrors?: Record<string, string[]> };
 
 export type AdmissionRow = Prisma.AdmissionGetPayload<{
@@ -170,6 +171,16 @@ export async function convertAdmissionAction(admissionId: string) {
     if (!student) throw new Error("Failed to allocate a student ID");
     const studentId = student.studentId;
 
+    const login = await ensureStudentUser(
+      {
+        id: student.id,
+        studentId: student.studentId,
+        fullName: student.fullName,
+        mobile: student.mobile,
+      },
+      user.id
+    );
+
     await db.admission.update({
       where: { id: admissionId },
       data: { status: "CONVERTED", studentId: student.id, reviewedBy: user.id, reviewedAt: new Date() },
@@ -185,7 +196,7 @@ export async function convertAdmissionAction(admissionId: string) {
     revalidatePath("/admissions");
     revalidatePath("/students");
     revalidatePath("/dashboard");
-    return { ok: true as const, id: student.id, studentId };
+    return { ok: true as const, id: student.id, studentId, login };
   } catch (error) {
     console.error("Convert admission failed:", error);
     return { ok: false as const, error: "Something went wrong. Please try again." };

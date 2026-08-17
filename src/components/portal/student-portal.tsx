@@ -199,7 +199,7 @@ export function StudentPortal({
                     <span className={f.balance > 0 ? "text-danger" : "text-muted"}>
                       {formatMoney(f.balance)}
                     </span>
-                    <Badge tone={f.status === "PAID" ? "green" : f.status === "PARTIAL" ? "amber" : "red"}>
+                    <Badge tone={f.status === "PAID" ? "green" : f.status === "PARTIAL" || f.status === "PENDING" ? "amber" : "red"}>
                       {feeStatusLabel[f.status]}
                     </Badge>
                   </div>

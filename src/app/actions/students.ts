@@ -8,6 +8,7 @@ import { studentSchema } from "@/lib/validation/schemas";
 import { nextStudentId, generateQrToken, dateOnlyUTC } from "@/lib/utils";
 import { logActivity } from "@/lib/activity";
 import { storeFile, deleteStoredFile } from "@/lib/storage";
+import { ensureStudentUser, type StudentLoginResult } from "@/lib/student-user";
 import type { Prisma } from "@/generated/prisma/client";
 
 export async function searchStudents(query: string) {
@@ -180,6 +181,16 @@ export async function createStudentAction(input: {
     }
     if (!student) throw new Error("Failed to allocate a student ID");
 
+    const login = await ensureStudentUser(
+      {
+        id: student.id,
+        studentId: student.studentId,
+        fullName: student.fullName,
+        mobile: student.mobile,
+      },
+      user.id
+    );
+
     await logActivity({
       userId: user.id,
       type: "STUDENT_CREATED",
@@ -190,7 +201,7 @@ export async function createStudentAction(input: {
     });
     revalidatePath("/students");
     revalidatePath("/dashboard");
-    return { ok: true as const, id: student.id, studentId: student.studentId };
+    return { ok: true as const, id: student.id, studentId: student.studentId, login };
   } catch (error) {
     console.error("Create student failed:", error);
     if (photoUrl) await deleteStoredFile(photoUrl);
@@ -376,5 +387,5 @@ export async function deleteStudentAction(id: string) {
 }
 
 export type StudentActionResult =
-  | { ok: true; id?: string; studentId?: string }
+  | { ok: true; id?: string; studentId?: string; login?: StudentLoginResult }
   | { ok: false; error: string; fieldErrors?: Record<string, string[]> };

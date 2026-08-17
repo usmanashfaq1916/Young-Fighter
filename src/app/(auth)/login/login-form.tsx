@@ -36,10 +36,10 @@ export function LoginForm({ next }: { next?: string }) {
       )}
       <Input
         name="email"
-        type="email"
-        label="Email address"
-        placeholder="you@example.com"
-        autoComplete="email"
+        type="text"
+        label="Email or student ID"
+        placeholder="you@example.com or YFA-00007"
+        autoComplete="username"
         required
         error={state?.fieldErrors?.email?.[0]}
       />

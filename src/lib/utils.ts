@@ -150,3 +150,11 @@ export function normalizePhone(raw: string): string {
   if (!digits.startsWith("0")) digits = `0${digits}`;
   return digits;
 }
+
+export function normalizeStudentId(raw: string): string {
+  const trimmed = raw.trim().replace(/^yfa[-_ ]?/i, "");
+  const num = parseInt(trimmed, 10);
+  return Number.isFinite(num) && num > 0
+    ? `YFA-${String(num).padStart(5, "0")}`
+    : trimmed.toUpperCase();
+}
