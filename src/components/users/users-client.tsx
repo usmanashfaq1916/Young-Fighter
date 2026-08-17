@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { UserPlus, Power, UserCheck, Link2, Users as UsersIcon } from "lucide-react";
+import { UserPlus, Power, UserCheck, Link2, KeyRound, Users as UsersIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
@@ -13,6 +13,7 @@ import {
   setUserStatusAction,
   assignCoachToStudentsAction,
   linkParentStudentsAction,
+  resetUserPasswordAction,
 } from "@/app/actions/users";
 import { useToast } from "@/components/providers/toast-provider";
 
@@ -56,6 +57,7 @@ export function UsersClient({
   const [form, setForm] = useState<Record<string, string>>({});
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
   const [tempPwd, setTempPwd] = useState<string | null>(null);
+  const [resetPwd, setResetPwd] = useState<string | null>(null);
   const [error, setError] = useState("");
 
   const [assignTarget, setAssignTarget] = useState<{ coachId: string | null; studentIds: string[] }>({
@@ -115,6 +117,18 @@ export function UsersClient({
       } else {
         setError(res.error);
       }
+    });
+  };
+
+  const resetPassword = (u: UserRow) => {
+    startTransition(async () => {
+      const res = await resetUserPasswordAction(u.id);
+      if (!res.ok) {
+        toast(res.error, "error");
+        return;
+      }
+      setResetPwd(res.temporaryPassword ?? null);
+      toast("Password reset", "success");
     });
   };
 
@@ -228,6 +242,9 @@ export function UsersClient({
                 <p>Joined {formatDate(u.createdAt)}{u.lastLoginAt ? ` · Last login ${formatDate(u.lastLoginAt)}` : ""}</p>
               </div>
               <div className="mt-4 flex items-center justify-between gap-2">
+                <Button variant="outline" size="sm" onClick={() => resetPassword(u)} loading={pending}>
+                  <KeyRound className="h-3.5 w-3.5" /> Reset password
+                </Button>
                 {u.id !== currentUser.id && (
                   <>
                     <select
@@ -351,6 +368,20 @@ export function UsersClient({
             </div>
           </div>
         )}
+      </Modal>
+
+      <Modal open={resetPwd !== null} onClose={() => setResetPwd(null)} title="Password reset" size="lg">
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-gold/40 bg-gold/10 p-4">
+            <p className="text-sm font-bold">Temporary password</p>
+            <p className="mt-1 break-all font-mono text-lg font-black text-navy dark:text-white">{resetPwd}</p>
+            <p className="mt-2 text-xs text-muted">
+              Share this with the user. They can change it after signing in. Any existing sessions have been
+              signed out.
+            </p>
+          </div>
+          <Button className="w-full" onClick={() => setResetPwd(null)}>Done</Button>
+        </div>
       </Modal>
 
       <Modal open={showAssign} onClose={() => setShowAssign(false)} title="Assign coach to students" size="lg">

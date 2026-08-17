@@ -168,6 +168,31 @@ export async function createUserAction(input: {
   return { ok: true as const, temporaryPassword: password };
 }
 
+export async function resetUserPasswordAction(
+  userId: string
+): Promise<UserActionResult & { temporaryPassword?: string }> {
+  const admin = await requireRole("ADMIN");
+  const target = await db.user.findUnique({ where: { id: userId } });
+  if (!target) return { ok: false as const, error: "User not found." };
+
+  const password = "User@" + Math.random().toString(36).slice(2, 8);
+  const passwordHash = await bcrypt.hash(password, 10);
+  await db.user.update({
+    where: { id: userId },
+    data: { passwordHash, sessionVersion: { increment: 1 }, updatedBy: admin.id },
+  });
+  await logActivity({
+    userId: admin.id,
+    type: "PASSWORD_RESET",
+    action: "Admin reset user password",
+    entity: "user",
+    entityId: userId,
+    details: target.email,
+  });
+  revalidatePath("/users");
+  return { ok: true as const, temporaryPassword: password };
+}
+
 export async function updateUserRoleAction(userId: string, role: string): Promise<UserActionResult> {
   const admin = await requireRole("ADMIN");
   const target = await db.user.findUnique({ where: { id: userId } });

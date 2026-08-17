@@ -75,10 +75,6 @@ export async function proxy(request: NextRequest) {
   const session = await decryptSession(token);
 
   if (isPublic) {
-    if (session?.userId && pathname === "/") {
-      const dest = ROLE_PREFIX[session.role] ?? "/dashboard";
-      return NextResponse.redirect(new URL(dest, request.url));
-    }
     return NextResponse.next();
   }
 

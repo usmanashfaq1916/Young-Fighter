@@ -18,8 +18,10 @@ import {
   Award,
   CalendarDays,
   FileText,
+  LayoutDashboard,
 } from "lucide-react";
 import { db } from "@/lib/db";
+import { verifySession, dashboardPathFor } from "@/lib/auth";
 import { ACADEMY_NAME, billingTypeLabel } from "@/lib/constants";
 import { formatMoney } from "@/lib/utils";
 import { LandingHeader } from "@/components/landing/landing-header";
@@ -150,6 +152,9 @@ const ADMISSION_STEPS: { icon: IconType; title: string; text: string }[] = [
 ];
 
 export default async function HomePage() {
+  const user = await verifySession();
+  const dashboardHref = user ? dashboardPathFor(user.role) : "/login";
+
   const [
     settings,
     batches,
@@ -292,6 +297,13 @@ export default async function HomePage() {
             match experience.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+            <Link
+              href={dashboardHref}
+              className="inline-flex items-center gap-2 rounded-xl border border-white/25 px-6 py-3 text-base font-semibold text-white transition hover:bg-white/10"
+            >
+              <LayoutDashboard className="h-4 w-4" />
+              Dashboard
+            </Link>
             <Link href="/programs" className="btn-gold !px-6 !py-3 text-base">
               Explore our programs
               <ArrowRight className="h-4 w-4" />

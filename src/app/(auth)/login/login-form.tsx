@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
 import { useFormStatus } from "react-dom";
+import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { loginAction, type AuthResult } from "@/app/actions/auth";
@@ -21,6 +22,7 @@ export function LoginForm({ next }: { next?: string }) {
     loginAction,
     undefined
   );
+  const [showPassword, setShowPassword] = useState(false);
 
   return (
     <form action={action} className="mt-8 space-y-4">
@@ -43,12 +45,23 @@ export function LoginForm({ next }: { next?: string }) {
       />
       <Input
         name="password"
-        type="password"
+        type={showPassword ? "text" : "password"}
         label="Password"
         placeholder="••••••••"
         autoComplete="current-password"
         required
         error={state?.fieldErrors?.password?.[0]}
+        trailing={
+          <button
+            type="button"
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            aria-pressed={showPassword}
+            onClick={() => setShowPassword((s) => !s)}
+            className="text-muted transition hover:text-foreground"
+          >
+            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        }
       />
       {next && <input type="hidden" name="next" value={next} />}
       <SubmitButton />
